@@ -1,6 +1,6 @@
-import { Box, Typography, Dialog, DialogTitle, DialogContent, DialogContentText, Select, MenuItem, FormControl } from '@mui/material';
+import { Box, Typography, Select, MenuItem, FormControl, Tooltip } from '@mui/material';
 import { useState, useMemo } from 'react';
-import { formatMoney, formatPercent, formatPrice, formatNumber } from '../utils/formatters';
+import { StockTooltip, formatSignedPercent } from './StockTooltip';
 
 function getHeatmapColor(changePercent) {
   const percent = changePercent * 100;
@@ -151,7 +151,6 @@ function gridLayout(items, width, height, gap = 6) {
 }
 
 export default function HeatmapView({ data }) {
-  const [selectedStock, setSelectedStock] = useState(null);
   const [groupBy, setGroupBy] = useState(() => {
     return localStorage.getItem('heatmapGroupBy') || 'sector';
   });
@@ -191,15 +190,19 @@ export default function HeatmapView({ data }) {
       const allStocks = data.map(stock => {
         const sizeValue = getSizeValue(stock);
         const marketCap = parseFloat(stock['Market Cap']) || 0;
+        const sortMetric = sizeBy === 'monoSize'
+          ? parseFloat(stock.Volume) || 0
+          : sizeValue;
         return {
           ticker: stock.Ticker,
           company: stock.Company,
           change: parseFloat(stock.Change) || 0,
           value: sizeValue,
           marketCap: marketCap,
-          stockData: stock
+          stockData: stock,
+          sortMetric,
         };
-      }).sort((a, b) => b.value - a.value);
+      }).sort((a, b) => b.sortMetric - a.sortMetric);
 
       return [{
         name: 'All Stocks',
@@ -221,13 +224,17 @@ export default function HeatmapView({ data }) {
       }
       const sizeValue = getSizeValue(stock);
       const marketCap = parseFloat(stock['Market Cap']) || 0;
+      const sortMetric = sizeBy === 'monoSize'
+        ? parseFloat(stock.Volume) || 0
+        : sizeValue;
       sectorMap[sector].stocks.push({
         ticker: stock.Ticker,
         company: stock.Company,
         change: parseFloat(stock.Change) || 0,
         value: sizeValue,
         marketCap: marketCap,
-        stockData: stock
+        stockData: stock,
+        sortMetric,
       });
       sectorMap[sector].totalMarketCap += marketCap;
     });
@@ -236,15 +243,15 @@ export default function HeatmapView({ data }) {
     return Object.values(sectorMap)
       .map(sector => ({
         ...sector,
-        stocks: sector.stocks.sort((a, b) => b.value - a.value)
+        stocks: sector.stocks.sort((a, b) => b.sortMetric - a.sortMetric)
       }))
       .sort((a, b) => {
         // Sort by the largest stock's value in each sector
-        const aFirstStockVal = a.stocks[0]?.value || 0;
-        const bFirstStockVal = b.stocks[0]?.value || 0;
+        const aFirstStockVal = a.stocks[0]?.sortMetric || 0;
+        const bFirstStockVal = b.stocks[0]?.sortMetric || 0;
         return bFirstStockVal - aFirstStockVal;
       });
-  }, [data, groupBy, getSizeValue]);
+  }, [data, groupBy, getSizeValue, sizeBy]);
 
   return (
     <Box>
@@ -301,6 +308,9 @@ export default function HeatmapView({ data }) {
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             Color:
           </Typography>
+          <Typography variant="body2" color="text.secondary">
+            -5%
+          </Typography>
           <Box
             sx={{
               width: 120,
@@ -309,9 +319,6 @@ export default function HeatmapView({ data }) {
               background: 'linear-gradient(to right, rgb(220, 40, 40), rgb(100, 100, 100), rgb(0, 212, 170))',
             }}
           />
-          <Typography variant="body2" color="text.secondary">
-            -5%
-          </Typography>
           <Typography variant="body2" color="text.secondary">
             +5%
           </Typography>
@@ -376,86 +383,101 @@ export default function HeatmapView({ data }) {
               >
                 {layout.map((item) => {
                   const color = getHeatmapColor(item.change);
-                  const changeText = item.change >= 0
-                    ? `+${(item.change * 100).toFixed(2)}%`
-                    : `${(item.change * 100).toFixed(2)}%`;
+                  const changeText = formatSignedPercent(item.change);
                   const score = parseFloat(item.stockData.Investor_Score) || 0;
 
                   return (
-                    <Box
+                    <Tooltip
                       key={item.ticker}
-                      onClick={() => setSelectedStock(item.stockData)}
-                      sx={{
-                        position: 'absolute',
-                        left: `${(item.x / sectorWidth) * 100}%`,
-                        top: `${(item.y / sectorHeight) * 100}%`,
-                        width: `${(item.width / sectorWidth) * 100}%`,
-                        height: `${(item.height / sectorHeight) * 100}%`,
-                        bgcolor: color,
-                        border: '1px solid rgba(0,0,0,0.2)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        p: 0.5,
-                        transition: 'all 0.15s',
-                        '&:hover': {
-                          filter: 'brightness(1.2)',
-                          zIndex: 50,
-                          boxShadow: '0 0 0 2px white',
+                      title={<StockTooltip stock={item.stockData} />}
+                      arrow
+                      followCursor
+                      enterDelay={150}
+                      componentsProps={{
+                        tooltip: {
+                          sx: {
+                            bgcolor: 'rgba(15,17,24,0.95)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.45)',
+                            maxWidth: 380,
+                            p: 1.5,
+                          },
+                        },
+                        arrow: {
+                          sx: { color: 'rgba(15,17,24,0.95)' },
                         },
                       }}
                     >
-                      {/* Score badge */}
-                      {score > 0 && item.width > 60 && item.height > 60 && (
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            top: 4,
-                            right: 4,
-                            bgcolor: 'rgba(0,0,0,0.6)',
-                            px: 0.5,
-                            py: 0.25,
-                            borderRadius: 0.5,
-                            fontSize: '0.625rem',
-                            fontWeight: 700,
-                            color: 'white',
-                          }}
-                        >
-                          {Math.round(score)}
-                        </Box>
-                      )}
-
-                      {/* Ticker */}
-                      <Typography
+                      <Box
                         sx={{
-                          fontSize: item.width > 80 ? '0.875rem' : '0.75rem',
-                          fontWeight: 700,
-                          color: 'white',
-                          textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                          textAlign: 'center',
-                          lineHeight: 1.2,
+                          position: 'absolute',
+                          left: `${(item.x / sectorWidth) * 100}%`,
+                          top: `${(item.y / sectorHeight) * 100}%`,
+                          width: `${(item.width / sectorWidth) * 100}%`,
+                          height: `${(item.height / sectorHeight) * 100}%`,
+                          bgcolor: color,
+                          border: '1px solid rgba(0,0,0,0.2)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          p: 0.5,
+                          transition: 'all 0.15s',
+                          '&:hover': {
+                            filter: 'brightness(1.2)',
+                            zIndex: 50,
+                            boxShadow: '0 0 0 2px white',
+                          },
                         }}
                       >
-                        {item.ticker}
-                      </Typography>
+                        {score > 0 && item.width > 60 && item.height > 60 && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 4,
+                              right: 4,
+                              bgcolor: 'rgba(0,0,0,0.6)',
+                              px: 0.5,
+                              py: 0.25,
+                              borderRadius: 0.5,
+                              fontSize: '0.625rem',
+                              fontWeight: 700,
+                              color: 'white',
+                            }}
+                          >
+                            {Math.round(score)}
+                          </Box>
+                        )}
 
-                      {/* Change percentage */}
-                      {item.height > 40 && (
                         <Typography
                           sx={{
-                            fontSize: item.width > 80 ? '0.75rem' : '0.625rem',
-                            fontWeight: 600,
+                            fontSize: item.width > 80 ? '0.875rem' : '0.75rem',
+                            fontWeight: 700,
                             color: 'white',
                             textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                            mt: 0.25,
+                            textAlign: 'center',
+                            lineHeight: 1.2,
                           }}
                         >
-                          {changeText}
+                          {item.ticker}
                         </Typography>
-                      )}
-                    </Box>
+
+                        {item.height > 40 && (
+                          <Typography
+                            sx={{
+                              fontSize: item.width > 80 ? '0.75rem' : '0.625rem',
+                              fontWeight: 600,
+                              color: 'white',
+                              textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                              mt: 0.25,
+                            }}
+                          >
+                            {changeText}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Tooltip>
                   );
                 })}
               </Box>
@@ -463,47 +485,6 @@ export default function HeatmapView({ data }) {
           );
         })}
       </Box>
-
-      <Dialog open={!!selectedStock} onClose={() => setSelectedStock(null)}>
-        {selectedStock && (
-          <>
-            <DialogTitle>
-              {selectedStock.Company} ({selectedStock.Ticker})
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'grid', gap: 1 }}>
-                <DialogContentText>
-                  <strong>Price:</strong> {formatPrice(selectedStock.Price)}
-                </DialogContentText>
-                <DialogContentText>
-                  <strong>Change:</strong>{' '}
-                  {parseFloat(selectedStock.Change) >= 0
-                    ? `+${formatPercent(selectedStock.Change)}`
-                    : formatPercent(selectedStock.Change)}
-                </DialogContentText>
-                <DialogContentText>
-                  <strong>Market Cap:</strong> {formatMoney(selectedStock['Market Cap'])}
-                </DialogContentText>
-                <DialogContentText>
-                  <strong>P/E:</strong> {formatNumber(selectedStock['P/E'], 2)}
-                </DialogContentText>
-                <DialogContentText>
-                  <strong>ROE:</strong> {formatPercent(selectedStock.ROE)}
-                </DialogContentText>
-                <DialogContentText>
-                  <strong>Investor Score:</strong> {Math.round(selectedStock.Investor_Score)}
-                </DialogContentText>
-                <DialogContentText>
-                  <strong>Sector:</strong> {selectedStock.Sector}
-                </DialogContentText>
-                <DialogContentText>
-                  <strong>Industry:</strong> {selectedStock.Industry}
-                </DialogContentText>
-              </Box>
-            </DialogContent>
-          </>
-        )}
-      </Dialog>
     </Box>
   );
 }

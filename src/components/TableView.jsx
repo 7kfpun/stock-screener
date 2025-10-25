@@ -1,13 +1,44 @@
-import { DataGrid } from '@mui/x-data-grid';
-import { Box } from '@mui/material';
-import { useState, useCallback } from 'react';
-import { formatMoney, formatVolume, formatPercent, formatPrice, formatNumber, formatCountry } from '../utils/formatters';
+import { DataGrid, GridRow } from '@mui/x-data-grid';
+import { Box, Tooltip } from '@mui/material';
+import { forwardRef } from 'react';
+import { formatMoney, formatVolume, formatPrice, formatNumber, formatCountry, formatPercent } from '../utils/formatters';
+import { StockTooltip, formatSignedPercent } from './StockTooltip';
 
 const COLORS = {
   success: '#00d4aa',
   danger: '#ff6b6b',
   primary: '#8b7ff5',
 };
+
+const TooltipRow = forwardRef(function TooltipRow(props, ref) {
+  const { row } = props;
+  const tooltipContent = row ? <StockTooltip stock={row} /> : '';
+
+  return (
+    <Tooltip
+      title={tooltipContent}
+      arrow
+      followCursor
+      enterDelay={150}
+      componentsProps={{
+        tooltip: {
+          sx: {
+            bgcolor: 'rgba(15,17,24,0.95)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.45)',
+            maxWidth: 380,
+            p: 1.5,
+          },
+        },
+        arrow: {
+          sx: { color: 'rgba(15,17,24,0.95)' },
+        },
+      }}
+    >
+      <GridRow ref={ref} {...props} />
+    </Tooltip>
+  );
+});
 
 export default function TableView({ data }) {
   const columns = [
@@ -54,12 +85,7 @@ export default function TableView({ data }) {
       headerName: 'Change',
       width: 100,
       type: 'number',
-      valueFormatter: (value) => {
-        const num = parseFloat(value);
-        if (isNaN(num)) return value;
-        const formatted = formatPercent(value);
-        return num > 0 ? `+${formatted}` : formatted;
-      },
+      valueFormatter: (value) => formatSignedPercent(value),
       cellClassName: (params) => {
         const num = parseFloat(params.value);
         if (isNaN(num)) return '';
@@ -341,6 +367,9 @@ export default function TableView({ data }) {
         pageSizeOptions={[25, 50, 100]}
         disableRowSelectionOnClick
         density="compact"
+        slots={{
+          row: TooltipRow,
+        }}
       />
     </Box>
   );
