@@ -158,37 +158,40 @@ function AppView() {
                 placeholder="Search ticker, company, sector..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                size="small"
                 sx={{ flexGrow: 1, minWidth: 260 }}
               />
             )}
 
-            <FormControl sx={{ minWidth: 150 }}>
-              <Select value={selectedDate} onChange={(e) => handleDateChange(e.target.value)} size="small">
-                                {availableDates.map(date => (
-                  <MenuItem key={date} value={date}>{date}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', ml: 'auto', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <FormControl sx={{ minWidth: 150 }}>
+                <Select value={selectedDate} onChange={(e) => handleDateChange(e.target.value)} size="small">
+                  {availableDates.map(date => (
+                    <MenuItem key={date} value={date}>{date}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-            <ToggleButtonGroup
-              value={view}
-              exclusive
-              onChange={handleViewChange}
-              size="small"
-            >
-              <ToggleButton value="table">
-                <TableRowsIcon sx={{ mr: 1 }} />
-                Table
-              </ToggleButton>
-              <ToggleButton value="heatmap">
-                <GridViewIcon sx={{ mr: 1 }} />
-                Heatmap
-              </ToggleButton>
-            </ToggleButtonGroup>
+              <ToggleButtonGroup
+                value={view}
+                exclusive
+                onChange={handleViewChange}
+                size="small"
+              >
+                <ToggleButton value="table">
+                  <TableRowsIcon sx={{ mr: 1 }} />
+                  Table
+                </ToggleButton>
+                <ToggleButton value="heatmap">
+                  <GridViewIcon sx={{ mr: 1 }} />
+                  Heatmap
+                </ToggleButton>
+              </ToggleButtonGroup>
 
-            <Box sx={{ ml: 'auto', display: 'flex', gap: 2, fontSize: '0.875rem', color: 'text.secondary' }}>
-              <span>{stocks.length} stocks</span>
-              {lastUpdated && <span>Updated: {lastUpdated}</span>}
+              <Box sx={{ display: 'flex', gap: 2, fontSize: '0.875rem', color: 'text.secondary' }}>
+                <span>{stocks.length} stocks</span>
+                {lastUpdated && <span>Updated: {lastUpdated}</span>}
+              </Box>
             </Box>
           </Box>
         </Box>
