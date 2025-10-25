@@ -25,9 +25,9 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
-import { loadStockData, buildDataUrl } from './utils/dataLoader';
-import TableView from './components/TableView';
-import HeatmapView from './components/HeatmapView';
+import { useStockData } from '../../application/useStockData.js';
+import TableView from '../components/TableView.jsx';
+import HeatmapView from '../components/HeatmapView.jsx';
 
 const getTheme = (mode) => createTheme({
   palette: {
@@ -54,13 +54,17 @@ const getTheme = (mode) => createTheme({
   },
 });
 
-function App() {
-  const [stockData, setStockData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+function AppView() {
+  const {
+    stocks,
+    availableDates,
+    selectedDate,
+    loading,
+    error,
+    lastUpdated,
+    selectDate,
+  } = useStockData();
   const [searchTerm, setSearchTerm] = useState('');
-  const [availableDates, setAvailableDates] = useState([]);
-  const [selectedDate, setSelectedDate] = useState('latest');
   const [themeMode, setThemeMode] = useState(() => {
     return localStorage.getItem('themeMode') || 'auto';
   });
@@ -106,43 +110,8 @@ function App() {
     localStorage.setItem('themeMode', newMode);
   };
 
-  useEffect(() => {
-    // Load available dates
-    fetch(buildDataUrl('dates.csv'))
-      .then(res => res.text())
-      .then(text => {
-        const dates = text.trim().split('\n').filter(d => d.trim());
-        // Sort dates in descending order (latest first) and take only first 50
-        const sortedDates = dates.sort((a, b) => b.localeCompare(a)).slice(0, 50);
-        setAvailableDates(sortedDates);
-      })
-      .catch(err => console.error('Error loading dates:', err));
-
-    // Load stock data
-    loadStockData()
-      .then(data => {
-        setStockData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
-
   const handleDateChange = (date) => {
-    setSelectedDate(date);
-    setLoading(true);
-    const filename = date === 'latest' ? 'latest.csv' : `${date}.csv`;
-    loadStockData(filename)
-      .then(data => {
-        setStockData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
+    selectDate(date);
   };
 
   useEffect(() => {
@@ -157,13 +126,15 @@ function App() {
     }
   };
 
-  const filteredData = stockData.filter(stock =>
-    Object.values(stock).some(value =>
-      String(value).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
-
-  const lastUpdated = stockData.length > 0 ? stockData[0].Run_Day : '';
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return stocks;
+    const query = searchTerm.toLowerCase();
+    return stocks.filter((stock) =>
+      Object.values(stock).some((value) =>
+        String(value ?? '').toLowerCase().includes(query)
+      )
+    );
+  }, [stocks, searchTerm]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -193,8 +164,7 @@ function App() {
 
             <FormControl sx={{ minWidth: 150 }}>
               <Select value={selectedDate} onChange={(e) => handleDateChange(e.target.value)} size="small">
-                <MenuItem value="latest">Latest Data</MenuItem>
-                {availableDates.map(date => (
+                                {availableDates.map(date => (
                   <MenuItem key={date} value={date}>{date}</MenuItem>
                 ))}
               </Select>
@@ -217,7 +187,7 @@ function App() {
             </ToggleButtonGroup>
 
             <Box sx={{ ml: 'auto', display: 'flex', gap: 2, fontSize: '0.875rem', color: 'text.secondary' }}>
-              <span>{stockData.length} stocks</span>
+              <span>{stocks.length} stocks</span>
               {lastUpdated && <span>Updated: {lastUpdated}</span>}
             </Box>
           </Box>
@@ -369,7 +339,7 @@ function App() {
         {!loading && !error && (
           <>
             {view === 'table' && <TableView data={filteredData} />}
-            {view === 'heatmap' && <HeatmapView data={stockData} />}
+            {view === 'heatmap' && <HeatmapView data={stocks} />}
           </>
         )}
       </Container>
@@ -377,4 +347,4 @@ function App() {
   );
 }
 
-export default App;
+export default AppView;

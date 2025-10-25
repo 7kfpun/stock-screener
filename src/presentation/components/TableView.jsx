@@ -1,7 +1,7 @@
 import { DataGrid, GridRow } from '@mui/x-data-grid';
-import { Box, Tooltip } from '@mui/material';
+import { Box, Tooltip, Typography } from '@mui/material';
 import { forwardRef } from 'react';
-import { formatMoney, formatVolume, formatPrice, formatNumber, formatCountry, formatPercent } from '../utils/formatters';
+import { formatMoney, formatVolume, formatPrice, formatNumber, formatCountry, formatPercent } from '../../shared/formatters';
 import { StockTooltip, formatSignedPercent } from './StockTooltip';
 
 const COLORS = {
@@ -59,17 +59,29 @@ export default function TableView({ data }) {
         return 'score-low';
       },
     },
-    { field: 'Ticker', headerName: 'Ticker', width: 70 },
-    { field: 'Company', headerName: 'Company', width: 200 },
-    { field: 'Sector', headerName: 'Sector', width: 150 },
-    { field: 'Industry', headerName: 'Industry', width: 180 },
     {
-      field: 'Country',
-      headerName: 'Co.',
-      width: 45,
-      valueFormatter: (value) => formatCountry(value),
-      align: 'center',
-      headerAlign: 'center',
+      field: 'identity',
+      headerName: 'Company',
+      width: 260,
+      sortable: false,
+      renderCell: (params) => {
+        const ticker = String(params.row.Ticker || '').toUpperCase();
+        const name = params.row.Company || '';
+        const sector = params.row.Sector || '-';
+        const industry = params.row.Industry || '-';
+        const flag = formatCountry(params.row.Country);
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, justifyContent: 'center', height: '100%' }}>
+            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>{name} ({ticker})</Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
+              <Box component='span'>{sector}</Box>
+              <Box component='span' sx={{ mx: 0.5 }}>{'•'}</Box>
+              <Box component='span'>{industry}</Box>
+              <Box component='span' sx={{ ml: 0.75 }}>* {flag}</Box>
+            </Typography>
+          </Box>
+        );
+      },
     },
     {
       field: 'Price',
@@ -293,24 +305,10 @@ export default function TableView({ data }) {
     },
   ];
 
-  const rows = data.map((row, index) => {
-    // Convert all numeric fields to numbers for proper sorting
-    const numericFields = [
-      'Investor_Score', 'Price', 'Change', 'Market Cap', 'Volume',
-      'P/E', 'Fwd P/E', 'PEG', 'P/S', 'P/B', 'ROE', 'ROA', 'ROIC',
-      'Profit M', 'Gross M', 'EPS This Y', 'EPS Next Y', 'EPS Next 5Y',
-      'Sales Past 5Y', 'Beta', 'SMA50', 'SMA200', '52W High', '52W Low', 'RSI'
-    ];
-
-    const processedRow = { id: index, ...row };
-
-    numericFields.forEach(field => {
-      const value = parseFloat(processedRow[field]);
-      processedRow[field] = isNaN(value) ? null : value;
-    });
-
-    return processedRow;
-  });
+  const rows = data.map((row, index) => ({
+    id: row.Ticker || index,
+    ...row,
+  }));
 
   return (
     <Box
@@ -367,6 +365,7 @@ export default function TableView({ data }) {
         pageSizeOptions={[25, 50, 100]}
         disableRowSelectionOnClick
         density="compact"
+        getRowHeight={() => 54}
         slots={{
           row: TooltipRow,
         }}

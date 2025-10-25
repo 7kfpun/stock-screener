@@ -3,14 +3,14 @@
 Quick guardrails for assistants working in this repo.
 
 ## Project
-- Vite-powered React UI (`src/App.jsx`) plus a legacy static build (`legacy/`).
-- CSV data lives in `public/data`; `latest.csv` is the default dataset with dated snapshots alongside.
-- `src/utils/dataLoader.js` fetches tab-delimited CSV, normalizes it, and feeds the React views.
+- Vite-powered React UI (`src/presentation/views/AppView.jsx`) plus a legacy static build (`legacy/`).
+- CSV assets live under `public/data`; `latest.csv` is the default dataset with dated snapshots alongside.
+- Domain/data/application layers now exist: `src/domain/stock/`, `src/data/csvStockRepository.js`, and `src/application/useStockData.js`.
 
 ## UI Entry Points
-- React table/heatmap views sit in `src/components/TableView.jsx` and `src/components/HeatmapView.jsx`.
-- The plain DataTables implementation now lives under `legacy/`; touch only if you intend to keep the non-React path working.
-- Shared formatters are in `src/utils/formatters.js`; reuse instead of inventing new ones.
+- Presentation components live in `src/presentation/components/` (Heatmap/Table/Tooltip).
+- The plain DataTables implementation remains under `legacy/`; touch only if you intend to keep the non-React path working.
+- Shared formatters sit in `src/shared/formatters.js`; reuse instead of inventing new ones.
 
 ## Workflow Notes
 - Keep datasets tab-delimited and in sync with the column configs before pushing.

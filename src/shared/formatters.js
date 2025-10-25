@@ -44,6 +44,7 @@ export function formatNumber(value, decimals = 2) {
 }
 
 export const COUNTRY_FLAGS = {
+  // common flags that listed in s&p500 and nasdaq
   'USA': '🇺🇸',
   'China': '🇨🇳',
   'Canada': '🇨🇦',
@@ -102,7 +103,7 @@ export const COUNTRY_FLAGS = {
   'Cyprus': '🇨🇾',
   'Malta': '🇲🇹',
   'Monaco': '🇲🇨',
-  'Liechtenstein': '🇱🇮'
+  'Liechtenstein': '🇱🇮',
 };
 
 export function formatCountry(value) {

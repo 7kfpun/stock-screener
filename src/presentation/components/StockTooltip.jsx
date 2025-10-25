@@ -7,7 +7,7 @@ import {
   formatVolume,
   formatCountry,
   formatScore,
-} from '../utils/formatters';
+} from '../../shared/formatters';
 
 export const formatSignedPercent = (value) => {
   const formatted = formatPercent(value);

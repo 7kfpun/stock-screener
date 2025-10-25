@@ -150,6 +150,14 @@ function gridLayout(items, width, height, gap = 6) {
   });
 }
 
+const numberOrZero = (value) => {
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? 0 : value;
+  }
+  const parsed = Number.parseFloat(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
 export default function HeatmapView({ data }) {
   const [groupBy, setGroupBy] = useState(() => {
     return localStorage.getItem('heatmapGroupBy') || 'sector';
@@ -174,13 +182,13 @@ export default function HeatmapView({ data }) {
   const getSizeValue = (stock) => {
     switch (sizeBy) {
       case 'marketCap':
-        return parseFloat(stock['Market Cap']) || 0;
+        return numberOrZero(stock['Market Cap']);
       case 'volume':
-        return parseFloat(stock.Volume) || 0;
+        return numberOrZero(stock.Volume);
       case 'monoSize':
         return 1; // All stocks same size
       default:
-        return parseFloat(stock['Market Cap']) || 0;
+        return numberOrZero(stock['Market Cap']);
     }
   };
 
@@ -189,14 +197,14 @@ export default function HeatmapView({ data }) {
       // No grouping - create a single group with all stocks
       const allStocks = data.map(stock => {
         const sizeValue = getSizeValue(stock);
-        const marketCap = parseFloat(stock['Market Cap']) || 0;
+        const marketCap = numberOrZero(stock['Market Cap']);
         const sortMetric = sizeBy === 'monoSize'
-          ? parseFloat(stock.Volume) || 0
+          ? numberOrZero(stock.Volume)
           : sizeValue;
         return {
           ticker: stock.Ticker,
           company: stock.Company,
-          change: parseFloat(stock.Change) || 0,
+          change: numberOrZero(stock.Change),
           value: sizeValue,
           marketCap: marketCap,
           stockData: stock,
@@ -223,14 +231,14 @@ export default function HeatmapView({ data }) {
         };
       }
       const sizeValue = getSizeValue(stock);
-      const marketCap = parseFloat(stock['Market Cap']) || 0;
+      const marketCap = numberOrZero(stock['Market Cap']);
       const sortMetric = sizeBy === 'monoSize'
-        ? parseFloat(stock.Volume) || 0
+        ? numberOrZero(stock.Volume)
         : sizeValue;
       sectorMap[sector].stocks.push({
         ticker: stock.Ticker,
         company: stock.Company,
-        change: parseFloat(stock.Change) || 0,
+        change: numberOrZero(stock.Change),
         value: sizeValue,
         marketCap: marketCap,
         stockData: stock,
@@ -251,7 +259,7 @@ export default function HeatmapView({ data }) {
         const bFirstStockVal = b.stocks[0]?.sortMetric || 0;
         return bFirstStockVal - aFirstStockVal;
       });
-  }, [data, groupBy, getSizeValue, sizeBy]);
+  }, [data, groupBy, sizeBy]);
 
   return (
     <Box>
@@ -376,7 +384,7 @@ export default function HeatmapView({ data }) {
                   position: 'relative',
                   width: '100%',
                   height: `${sectorHeight}px`,
-                  bgcolor: '#1a1d2e',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1a1d2e' : '#f2f4ff',
                   borderRadius: 1,
                   overflow: 'hidden',
                 }}
@@ -384,7 +392,7 @@ export default function HeatmapView({ data }) {
                 {layout.map((item) => {
                   const color = getHeatmapColor(item.change);
                   const changeText = formatSignedPercent(item.change);
-                  const score = parseFloat(item.stockData.Investor_Score) || 0;
+                  const score = numberOrZero(item.stockData.Investor_Score);
 
                   return (
                     <Tooltip
