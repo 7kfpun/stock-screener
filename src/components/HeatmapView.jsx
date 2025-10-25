@@ -110,6 +110,46 @@ function squarify(items, x, y, width, height) {
   return result;
 }
 
+function gridLayout(items, width, height, gap = 6) {
+  if (items.length === 0) return [];
+
+  let bestCols = 1;
+  let bestRows = items.length;
+  let bestSize = 0;
+
+  for (let cols = 1; cols <= items.length; cols++) {
+    const rows = Math.ceil(items.length / cols);
+    const cellWidth = (width - (cols - 1) * gap) / cols;
+    const cellHeight = (height - (rows - 1) * gap) / rows;
+    const cellSize = Math.min(cellWidth, cellHeight);
+
+    if (cellSize <= 0) continue;
+    if (cellSize > bestSize) {
+      bestSize = cellSize;
+      bestCols = cols;
+      bestRows = rows;
+    }
+  }
+
+  const totalWidth = bestCols * bestSize + (bestCols - 1) * gap;
+  const totalHeight = bestRows * bestSize + (bestRows - 1) * gap;
+  const offsetX = Math.max(0, (width - totalWidth) / 2);
+  const offsetY = Math.max(0, (height - totalHeight) / 2);
+
+  return items.map((item, index) => {
+    const row = Math.floor(index / bestCols);
+    const col = index % bestCols;
+
+    return {
+      ...item,
+      x: offsetX + col * (bestSize + gap),
+      y: offsetY + row * (bestSize + gap),
+      width: bestSize,
+      height: bestSize,
+    };
+  });
+}
+
 export default function HeatmapView({ data }) {
   const [selectedStock, setSelectedStock] = useState(null);
   const [groupBy, setGroupBy] = useState(() => {
@@ -138,8 +178,6 @@ export default function HeatmapView({ data }) {
         return parseFloat(stock['Market Cap']) || 0;
       case 'volume':
         return parseFloat(stock.Volume) || 0;
-      case 'score':
-        return parseFloat(stock.Investor_Score) || 0;
       case 'monoSize':
         return 1; // All stocks same size
       default:
@@ -255,7 +293,6 @@ export default function HeatmapView({ data }) {
           >
             <MenuItem value="marketCap">Market Cap</MenuItem>
             <MenuItem value="volume">Volume</MenuItem>
-            <MenuItem value="score">Investor Score</MenuItem>
             <MenuItem value="monoSize">Mono Size</MenuItem>
           </Select>
         </FormControl>
@@ -297,7 +334,9 @@ export default function HeatmapView({ data }) {
             ? window.innerHeight - 340 // Full height minus headers
             : Math.max(200, (window.innerHeight - 340) / sectors.length - 8); // Divide by number of sectors
           const sectorWidth = 1200; // Approximate container width
-          const layout = squarify(sector.stocks, 0, 0, sectorWidth, sectorHeight);
+          const layout = sizeBy === 'monoSize'
+            ? gridLayout(sector.stocks, sectorWidth, sectorHeight)
+            : squarify(sector.stocks, 0, 0, sectorWidth, sectorHeight);
 
           return (
             <Box key={sector.name} sx={{ mb: 1, position: 'relative' }}>
