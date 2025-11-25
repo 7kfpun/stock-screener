@@ -28,6 +28,8 @@ import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import { useStockData } from '../../application/useStockData.js';
 import TableView from '../components/TableView.jsx';
 import HeatmapView from '../components/HeatmapView.jsx';
+import DatePickerPopover from '../components/DatePickerPopover.jsx';
+import { trackThemeChange, trackViewChange, trackSearch, trackAccordionToggle } from '../../shared/analytics.js';
 
 const getTheme = (mode) => createTheme({
   palette: {
@@ -108,6 +110,7 @@ function AppView() {
     const newMode = modes[(currentIndex + 1) % modes.length];
     setThemeMode(newMode);
     localStorage.setItem('themeMode', newMode);
+    trackThemeChange(newMode);
   };
 
   const handleDateChange = (date) => {
@@ -123,6 +126,7 @@ function AppView() {
   const handleViewChange = (_event, newView) => {
     if (newView !== null) {
       setView(newView);
+      trackViewChange(newView);
     }
   };
 
@@ -135,6 +139,16 @@ function AppView() {
       )
     );
   }, [stocks, searchTerm]);
+
+  // Track search with debouncing
+  useEffect(() => {
+    if (searchTerm) {
+      const timeoutId = setTimeout(() => {
+        trackSearch(searchTerm);
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchTerm]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -164,13 +178,20 @@ function AppView() {
             )}
 
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', ml: 'auto', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <FormControl sx={{ minWidth: 150 }}>
-                <Select value={selectedDate} onChange={(e) => handleDateChange(e.target.value)} size="small">
-                  {availableDates.map(date => (
-                    <MenuItem key={date} value={date}>{date}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl sx={{ minWidth: 150 }}>
+                  <Select value={selectedDate} onChange={(e) => handleDateChange(e.target.value)} size="small">
+                    {availableDates.map(date => (
+                      <MenuItem key={date} value={date}>{date}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <DatePickerPopover
+                  selectedDate={selectedDate}
+                  availableDates={availableDates}
+                  onDateChange={handleDateChange}
+                />
+              </Box>
 
               <ToggleButtonGroup
                 value={view}
@@ -196,7 +217,10 @@ function AppView() {
           </Box>
         </Box>
 
-        <Accordion sx={{ mb: 3, bgcolor: 'background.paper', borderRadius: 2 }}>
+        <Accordion
+          sx={{ mb: 3, bgcolor: 'background.paper', borderRadius: 2 }}
+          onChange={(_, expanded) => trackAccordionToggle('screening_methodology', expanded)}
+        >
           <AccordionSummary
             expandIcon={<ExpandMoreIcon />}
             sx={{
