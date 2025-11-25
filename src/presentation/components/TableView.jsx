@@ -3,6 +3,7 @@ import { Box, Tooltip, Typography } from '@mui/material';
 import { forwardRef } from 'react';
 import { formatMoney, formatVolume, formatPrice, formatNumber, formatCountry, formatPercent } from '../../shared/formatters';
 import { StockTooltip, formatSignedPercent } from './StockTooltip';
+import { trackTableInteraction } from '../../shared/analytics';
 
 const COLORS = {
   success: '#00d4aa',
@@ -310,6 +311,29 @@ export default function TableView({ data }) {
     ...row,
   }));
 
+  const handleSortModelChange = (model) => {
+    if (model.length > 0) {
+      trackTableInteraction('sort', {
+        field: model[0].field,
+        sort: model[0].sort,
+      });
+    }
+  };
+
+  const handlePaginationModelChange = (model) => {
+    trackTableInteraction('pagination', {
+      page: model.page,
+      pageSize: model.pageSize,
+    });
+  };
+
+  const handleRowClick = (params) => {
+    trackTableInteraction('row_click', {
+      ticker: params.row.Ticker,
+      company: params.row.Company,
+    });
+  };
+
   return (
     <Box
       sx={{
@@ -369,6 +393,9 @@ export default function TableView({ data }) {
         slots={{
           row: TooltipRow,
         }}
+        onSortModelChange={handleSortModelChange}
+        onPaginationModelChange={handlePaginationModelChange}
+        onRowClick={handleRowClick}
       />
     </Box>
   );

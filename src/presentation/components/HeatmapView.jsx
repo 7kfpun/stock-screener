@@ -1,6 +1,7 @@
 import { Box, Typography, Select, MenuItem, FormControl, Tooltip } from '@mui/material';
 import { useState, useMemo } from 'react';
 import { StockTooltip, formatSignedPercent } from './StockTooltip';
+import { trackHeatmapInteraction } from '../../shared/analytics';
 
 function getHeatmapColor(changePercent) {
   const percent = changePercent * 100;
@@ -170,12 +171,18 @@ export default function HeatmapView({ data }) {
     const newValue = event.target.value;
     setGroupBy(newValue);
     localStorage.setItem('heatmapGroupBy', newValue);
+    trackHeatmapInteraction('group_by_change', { group_by: newValue });
   };
 
   const handleSizeByChange = (event) => {
     const newValue = event.target.value;
     setSizeBy(newValue);
     localStorage.setItem('heatmapSizeBy', newValue);
+    trackHeatmapInteraction('size_by_change', { size_by: newValue });
+  };
+
+  const handleTileClick = (ticker, company) => {
+    trackHeatmapInteraction('tile_click', { ticker, company });
   };
 
   // Helper function to get size value based on selected metric
@@ -417,6 +424,7 @@ export default function HeatmapView({ data }) {
                       }}
                     >
                       <Box
+                        onClick={() => handleTileClick(item.ticker, item.company)}
                         sx={{
                           position: 'absolute',
                           left: `${(item.x / sectorWidth) * 100}%`,
