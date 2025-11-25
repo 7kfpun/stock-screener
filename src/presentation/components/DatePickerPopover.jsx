@@ -18,6 +18,7 @@ const StyledDay = styled(PickersDay)(({ theme, available }) => ({
   ...(available && {
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.primary.contrastText,
+    fontWeight: 600,
     '&:hover': {
       backgroundColor: theme.palette.primary.dark,
     },
@@ -28,10 +29,6 @@ const StyledDay = styled(PickersDay)(({ theme, available }) => ({
         backgroundColor: theme.palette.secondary.dark,
       },
     },
-  }),
-  ...(!available && {
-    opacity: 0.3,
-    pointerEvents: 'none',
   }),
 }));
 
@@ -60,6 +57,13 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
     availableDates.length > 0 ? dayjs(availableDates[availableDates.length - 1]) : dayjs(),
     [availableDates]
   );
+
+  // Disable dates that are not in availableDates
+  const shouldDisableDate = (date) => {
+    if (!date || !dayjs.isDayjs(date)) return true;
+    const dateString = date.format('YYYY-MM-DD');
+    return !availableDatesSet.has(dateString);
+  };
 
   const handleDateChange = (newDate) => {
     if (newDate && dayjs.isDayjs(newDate)) {
@@ -135,6 +139,7 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
             <DateCalendar
               value={dayjs(selectedDate)}
               onChange={handleDateChange}
+              shouldDisableDate={shouldDisableDate}
               minDate={minDate}
               maxDate={maxDate}
               views={['year', 'month', 'day']}
