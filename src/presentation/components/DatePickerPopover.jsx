@@ -50,22 +50,17 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
   // Convert available dates to a Set for faster lookup
   const availableDatesSet = useMemo(() => new Set(availableDates), [availableDates]);
 
+  const sortedDates = useMemo(() => [...availableDates].sort(), [availableDates]);
+
   // Get the earliest and latest dates for calendar bounds
   const minDate = useMemo(() =>
-    availableDates.length > 0 ? dayjs(availableDates[0]) : dayjs().subtract(1, 'year'),
-    [availableDates]
+    sortedDates.length > 0 ? dayjs(sortedDates[0]) : dayjs().subtract(1, 'year'),
+    [sortedDates]
   );
   const maxDate = useMemo(() =>
-    availableDates.length > 0 ? dayjs(availableDates[availableDates.length - 1]) : dayjs(),
-    [availableDates]
+    sortedDates.length > 0 ? dayjs(sortedDates[sortedDates.length - 1]) : dayjs(),
+    [sortedDates]
   );
-
-  // Disable dates that are not in availableDates
-  const shouldDisableDate = (date) => {
-    if (!date || !dayjs.isDayjs(date)) return true;
-    const dateString = date.format('YYYY-MM-DD');
-    return !availableDatesSet.has(dateString);
-  };
 
   const handleDateChange = (newDate) => {
     if (newDate && dayjs.isDayjs(newDate)) {
@@ -80,18 +75,22 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
 
   // Create a custom day component
   const CustomDay = (props) => {
-    const { day, ...other } = props;
+    const { day, disabled: disabledProp, ...other } = props;
     if (!day || !dayjs.isDayjs(day)) {
-      return <PickersDay {...other} day={day} />;
+      return <PickersDay {...other} day={day} disabled={disabledProp} />;
     }
     const dateString = day.format('YYYY-MM-DD');
     const isAvailable = availableDatesSet.has(dateString);
+
+    // Combine the disabled state from props with the availability check
+    const isDisabled = disabledProp || !isAvailable;
 
     return (
       <StyledDay
         {...other}
         day={day}
         isAvailable={isAvailable}
+        disabled={isDisabled} // Pass the final disabled state to StyledDay
       />
     );
   };
@@ -141,7 +140,6 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
             <DateCalendar
               value={dayjs(selectedDate)}
               onChange={handleDateChange}
-              shouldDisableDate={shouldDisableDate}
               minDate={minDate}
               maxDate={maxDate}
               views={['year', 'month', 'day']}
