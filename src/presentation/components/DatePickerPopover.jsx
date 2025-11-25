@@ -14,8 +14,10 @@ import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import dayjs from 'dayjs';
 import { trackDateSelection } from '../../shared/analytics.js';
 
-const StyledDay = styled(PickersDay)(({ theme, available }) => ({
-  ...(available && {
+const StyledDay = styled(PickersDay, {
+  shouldForwardProp: (prop) => prop !== 'isAvailable',
+})(({ theme, isAvailable }) => ({
+  ...(isAvailable && {
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.primary.contrastText,
     fontWeight: 600,
@@ -89,7 +91,7 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
       <StyledDay
         {...other}
         day={day}
-        available={isAvailable}
+        isAvailable={isAvailable}
       />
     );
   };
