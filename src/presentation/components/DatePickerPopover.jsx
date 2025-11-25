@@ -14,10 +14,13 @@ import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import dayjs from 'dayjs';
 import { trackDateSelection } from '../../shared/analytics.js';
 
-const StyledDay = styled(PickersDay)(({ theme, available }) => ({
-  ...(available && {
+const StyledDay = styled(PickersDay, {
+  shouldForwardProp: (prop) => prop !== 'isAvailable',
+})(({ theme, isAvailable }) => ({
+  ...(isAvailable && {
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.primary.contrastText,
+    fontWeight: 600,
     '&:hover': {
       backgroundColor: theme.palette.primary.dark,
     },
@@ -28,10 +31,6 @@ const StyledDay = styled(PickersDay)(({ theme, available }) => ({
         backgroundColor: theme.palette.secondary.dark,
       },
     },
-  }),
-  ...(!available && {
-    opacity: 0.3,
-    pointerEvents: 'none',
   }),
 }));
 
@@ -61,6 +60,13 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
     [availableDates]
   );
 
+  // Disable dates that are not in availableDates
+  const shouldDisableDate = (date) => {
+    if (!date || !dayjs.isDayjs(date)) return true;
+    const dateString = date.format('YYYY-MM-DD');
+    return !availableDatesSet.has(dateString);
+  };
+
   const handleDateChange = (newDate) => {
     if (newDate && dayjs.isDayjs(newDate)) {
       const dateString = newDate.format('YYYY-MM-DD');
@@ -85,7 +91,7 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
       <StyledDay
         {...other}
         day={day}
-        available={isAvailable}
+        isAvailable={isAvailable}
       />
     );
   };
@@ -135,8 +141,10 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
             <DateCalendar
               value={dayjs(selectedDate)}
               onChange={handleDateChange}
+              shouldDisableDate={shouldDisableDate}
               minDate={minDate}
               maxDate={maxDate}
+              views={['year', 'month', 'day']}
               slots={{
                 day: CustomDay,
               }}
@@ -144,6 +152,24 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
                 '& .MuiPickersCalendarHeader-root': {
                   paddingLeft: 1,
                   paddingRight: 1,
+                  marginBottom: 1,
+                },
+                '& .MuiPickersCalendarHeader-label': {
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                },
+                '& .MuiPickersArrowSwitcher-root': {
+                  display: 'inline-flex',
+                  '& button': {
+                    padding: 1,
+                  },
+                },
+                '& .MuiPickersArrowSwitcher-button': {
+                  color: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                  },
                 },
               }}
             />
