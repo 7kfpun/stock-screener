@@ -36,6 +36,27 @@ const StyledDay = styled(PickersDay, {
 
 function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
+  const [calendarView, setCalendarView] = useState('day');
+
+  const open = Boolean(anchorEl);
+
+  const availableDatesSet = useMemo(
+    () => new Set(availableDates),
+    [availableDates]
+  );
+
+  const { minDate, maxDate } = useMemo(() => {
+    if (availableDates.length === 0) {
+      return {
+        minDate: dayjs().subtract(1, 'year'),
+        maxDate: dayjs(),
+      };
+    }
+    return {
+      minDate: dayjs(availableDates[0]),
+      maxDate: dayjs(availableDates[availableDates.length - 1]),
+    };
+  }, [availableDates]);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -43,54 +64,35 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
 
   const handleClose = () => {
     setAnchorEl(null);
-  };
-
-  const open = Boolean(anchorEl);
-
-  // Convert available dates to a Set for faster lookup
-  const availableDatesSet = useMemo(() => new Set(availableDates), [availableDates]);
-
-  // Get the earliest and latest dates for calendar bounds
-  const minDate = useMemo(() =>
-    availableDates.length > 0 ? dayjs(availableDates[0]) : dayjs().subtract(1, 'year'),
-    [availableDates]
-  );
-  const maxDate = useMemo(() =>
-    availableDates.length > 0 ? dayjs(availableDates[availableDates.length - 1]) : dayjs(),
-    [availableDates]
-  );
-
-  // Disable dates that are not in availableDates
-  const shouldDisableDate = (date) => {
-    if (!date || !dayjs.isDayjs(date)) return true;
-    const dateString = date.format('YYYY-MM-DD');
-    return !availableDatesSet.has(dateString);
+    setCalendarView('day');
   };
 
   const handleDateChange = (newDate) => {
-    if (newDate && dayjs.isDayjs(newDate)) {
-      const dateString = newDate.format('YYYY-MM-DD');
-      if (availableDatesSet.has(dateString)) {
-        onDateChange(dateString);
-        trackDateSelection(dateString);
-        handleClose();
-      }
+    if (!newDate || !dayjs.isDayjs(newDate)) return;
+
+    const dateString = newDate.format('YYYY-MM-DD');
+    if (availableDatesSet.has(dateString)) {
+      onDateChange(dateString);
+      trackDateSelection(dateString);
+      handleClose();
     }
   };
 
-  // Create a custom day component
   const CustomDay = (props) => {
-    const { day, ...other } = props;
+    const { day, outsideCurrentMonth, ...other } = props;
+
     if (!day || !dayjs.isDayjs(day)) {
-      return <PickersDay {...other} day={day} />;
+      return <PickersDay {...other} day={day} outsideCurrentMonth={outsideCurrentMonth} />;
     }
-    const dateString = day.format('YYYY-MM-DD');
-    const isAvailable = availableDatesSet.has(dateString);
+
+    const isAvailable = availableDatesSet.has(day.format('YYYY-MM-DD'));
 
     return (
       <StyledDay
         {...other}
         day={day}
+        outsideCurrentMonth={outsideCurrentMonth}
+        disabled={!isAvailable || outsideCurrentMonth}
         isAvailable={isAvailable}
       />
     );
@@ -115,18 +117,14 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
         open={open}
         anchorEl={anchorEl}
         onClose={handleClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'center',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'center',
-        }}
-        sx={{
-          '& .MuiPopover-paper': {
-            borderRadius: 2,
-            boxShadow: 3,
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 2,
+              boxShadow: 3,
+            },
           },
         }}
       >
@@ -141,37 +139,13 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
             <DateCalendar
               value={dayjs(selectedDate)}
               onChange={handleDateChange}
-              shouldDisableDate={shouldDisableDate}
               minDate={minDate}
               maxDate={maxDate}
               views={['year', 'month', 'day']}
-              slots={{
-                day: CustomDay,
-              }}
-              sx={{
-                '& .MuiPickersCalendarHeader-root': {
-                  paddingLeft: 1,
-                  paddingRight: 1,
-                  marginBottom: 1,
-                },
-                '& .MuiPickersCalendarHeader-label': {
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                },
-                '& .MuiPickersArrowSwitcher-root': {
-                  display: 'inline-flex',
-                  '& button': {
-                    padding: 1,
-                  },
-                },
-                '& .MuiPickersArrowSwitcher-button': {
-                  color: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                },
-              }}
+              view={calendarView}
+              onViewChange={setCalendarView}
+              openTo="day"
+              slots={{ day: CustomDay }}
             />
           </LocalizationProvider>
         </Box>
