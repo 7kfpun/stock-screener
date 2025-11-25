@@ -137,6 +137,7 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
               onChange={handleDateChange}
               minDate={minDate}
               maxDate={maxDate}
+              views={['year', 'month', 'day']}
               slots={{
                 day: CustomDay,
               }}
@@ -144,6 +145,24 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
                 '& .MuiPickersCalendarHeader-root': {
                   paddingLeft: 1,
                   paddingRight: 1,
+                  marginBottom: 1,
+                },
+                '& .MuiPickersCalendarHeader-label': {
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                },
+                '& .MuiPickersArrowSwitcher-root': {
+                  display: 'inline-flex',
+                  '& button': {
+                    padding: 1,
+                  },
+                },
+                '& .MuiPickersArrowSwitcher-button': {
+                  color: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                  },
                 },
               }}
             />
