@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Popover,
   IconButton,
@@ -49,30 +49,43 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
   const open = Boolean(anchorEl);
 
   // Convert available dates to a Set for faster lookup
-  const availableDatesSet = new Set(availableDates);
+  const availableDatesSet = useMemo(() => new Set(availableDates), [availableDates]);
 
   // Get the earliest and latest dates for calendar bounds
-  const minDate = availableDates.length > 0 ? dayjs(availableDates[0]) : dayjs().subtract(1, 'year');
-  const maxDate = availableDates.length > 0 ? dayjs(availableDates[availableDates.length - 1]) : dayjs();
+  const minDate = useMemo(() =>
+    availableDates.length > 0 ? dayjs(availableDates[0]) : dayjs().subtract(1, 'year'),
+    [availableDates]
+  );
+  const maxDate = useMemo(() =>
+    availableDates.length > 0 ? dayjs(availableDates[availableDates.length - 1]) : dayjs(),
+    [availableDates]
+  );
 
   const handleDateChange = (newDate) => {
-    const dateString = newDate.format('YYYY-MM-DD');
-    if (availableDatesSet.has(dateString)) {
-      onDateChange(dateString);
-      trackDateSelection(dateString);
-      handleClose();
+    if (newDate && dayjs.isDayjs(newDate)) {
+      const dateString = newDate.format('YYYY-MM-DD');
+      if (availableDatesSet.has(dateString)) {
+        onDateChange(dateString);
+        trackDateSelection(dateString);
+        handleClose();
+      }
     }
   };
 
-  const renderDay = (day, selectedDays, pickersDayProps) => {
+  // Create a custom day component
+  const CustomDay = (props) => {
+    const { day, ...other } = props;
+    if (!day || !dayjs.isDayjs(day)) {
+      return <PickersDay {...other} day={day} />;
+    }
     const dateString = day.format('YYYY-MM-DD');
     const isAvailable = availableDatesSet.has(dateString);
 
     return (
       <StyledDay
-        {...pickersDayProps}
+        {...other}
+        day={day}
         available={isAvailable}
-        disableMargin
       />
     );
   };
@@ -125,7 +138,7 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
               minDate={minDate}
               maxDate={maxDate}
               slots={{
-                day: renderDay,
+                day: CustomDay,
               }}
               sx={{
                 '& .MuiPickersCalendarHeader-root': {
