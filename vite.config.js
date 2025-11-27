@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/stock-screener/',
+  base: '/',
   server: {
     port: 8000,
   },
