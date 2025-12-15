@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://7kfpun.github.io/stock-screener/</loc>
-    <lastmod>2025-11-25</lastmod>
+    <loc>https://screener.wahthefox.com/</loc>
+    <lastmod>2025-12-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://7kfpun.github.io/stock-screener/?view=table</loc>
-    <lastmod>2025-11-25</lastmod>
+    <loc>https://screener.wahthefox.com/?view=table</loc>
+    <lastmod>2025-12-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://7kfpun.github.io/stock-screener/?view=heatmap</loc>
-    <lastmod>2025-11-25</lastmod>
+    <loc>https://screener.wahthefox.com/?view=heatmap</loc>
+    <lastmod>2025-12-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
