@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://7kfpun.github.io/stock-screener/sitemap.xml
+Sitemap: https://screener.wahthefox.com/sitemap.xml
