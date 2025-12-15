@@ -17,6 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'auto-upt: add new date entry')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
