@@ -42,6 +42,19 @@ npm run preview
 - `npm run lint` - Lint code with ESLint
 - `npm run lint:fix` - Auto-fix linting issues
 
+## Makefile Shortcuts
+
+Use the provided `Makefile` for repeatable workflows:
+
+- `make install` - Run `npm install`
+- `make dev` / `make serve` - Launch the Vite dev server on port 8000
+- `make build` - Build for production
+- `make preview` - Preview the `dist/` output
+- `make lint` - Lint JavaScript/JSX sources
+- `make format` - Format `src/**/*.{js,jsx}` with Prettier (if installed)
+- `make check` - Validate required files, datasets, and directories exist
+- `make clean` - Remove build artifacts and cached assets
+
 ## Project Structure
 
 ```
@@ -69,12 +82,20 @@ CSV assets live under `public/data`:
 - **Linting**: ESLint with React hooks and refresh plugins
 - **Pre-commit**: Husky + lint-staged for automatic linting
 - **Testing**: Vitest + React Testing Library
-- **CI/CD**: GitHub Actions for PR checks and deployment
+- **Guides**: See `AGENTS.md` for contributor workflow expectations and `CLAUDE.md` for assistant-specific guardrails.
+- **CI/CD**: `PR Checks` (`.github/workflows/pr-checks.yml`) runs lint, tests, and build on every PR and push to `main`.
 
 ### Git Hooks
 Pre-commit hooks automatically:
 - Lint and auto-fix staged files
 - Ensure code quality before commits
+
+## Contributing
+- Review [`AGENTS.md`](./AGENTS.md) before opening a pull request and update it when workflows, commands, or structure change.
+- Assistants collaborating via LLM tooling should read [`CLAUDE.md`](./CLAUDE.md) to match the expected tone and triage process.
+- Validate changes locally with `npm run lint`, `npm test -- --run`, and `npm run build` (or the equivalent Make targets) so the `PR Checks` workflow passes on the first try.
+- Keep `public/data`, grid columns, and formatters in sync whenever you adjust CSV schemas or add derived metrics; document notable data changes in this README.
+- Include UI screenshots or short clips plus linked issues (e.g., `Fixes #123`) in every pull request description.
 
 ## Deployment
 
