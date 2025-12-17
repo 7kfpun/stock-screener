@@ -19,6 +19,8 @@ import {
   Tooltip
 } from 'recharts';
 import { calculateScoreBreakdown } from '../../domain/stock/scoreCalculator';
+import { tooltipFieldGroups, formatSignedPercent } from './StockTooltip';
+import { formatCountry } from '../../shared/formatters';
 
 /**
  * StockScoreDrawer - Displays detailed Investor Score breakdown in a right-side drawer
@@ -182,43 +184,60 @@ export function StockScoreDrawer({ open, stock, onClose }) {
         </Stack>
       </Box>
 
-      {/* Additional Stock Info */}
+      {/* Complete Stock Details from Tooltip */}
       <Divider sx={{ my: 3 }} />
 
-      <Typography variant="subtitle2" gutterBottom>
-        Key Metrics
-      </Typography>
-      <Stack spacing={1} sx={{ mt: 2 }}>
-        <MetricRow label="PEG Ratio" value={stock.PEG?.toFixed(2)} />
-        <MetricRow label="ROE" value={stock.ROE ? `${(stock.ROE * 100).toFixed(1)}%` : null} />
-        <MetricRow label="Profit Margin" value={stock['Profit M'] ? `${(stock['Profit M'] * 100).toFixed(1)}%` : null} />
-        <MetricRow label="EPS Growth (5Y)" value={stock['EPS Next 5Y'] ? `${(stock['EPS Next 5Y'] * 100).toFixed(1)}%` : null} />
-      </Stack>
+      {/* Company Info */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="caption" color="text.secondary">
+          {stock.Sector || '-'} • {stock.Industry || '-'} • {formatCountry(stock.Country)}
+        </Typography>
+      </Box>
 
-      {/* Sector and Industry */}
-      <Divider sx={{ my: 3 }} />
-
-      <Stack spacing={1}>
-        <MetricRow label="Sector" value={stock.Sector} />
-        <MetricRow label="Industry" value={stock.Industry} />
-        <MetricRow label="Country" value={stock.Country} />
+      {/* All Metric Sections */}
+      <Stack spacing={3}>
+        {tooltipFieldGroups.map((section) => (
+          <Box key={section.title}>
+            <Typography
+              variant="overline"
+              sx={{
+                letterSpacing: '0.08em',
+                color: 'text.secondary',
+                fontWeight: 600,
+                display: 'block',
+                mb: 1.5
+              }}
+            >
+              {section.title}
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 1.5,
+              }}
+            >
+              {section.fields.map((field) => (
+                <Box
+                  key={field.label}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.25
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    {field.label}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="medium">
+                    {field.formatter ? field.formatter(stock[field.key]) : stock[field.key] || '-'}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ))}
       </Stack>
     </Drawer>
-  );
-}
-
-/**
- * MetricRow - Helper component for displaying metric label-value pairs
- */
-function MetricRow({ label, value }) {
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-      <Typography variant="body2" color="text.secondary">
-        {label}
-      </Typography>
-      <Typography variant="body2" fontWeight="medium">
-        {value ?? 'N/A'}
-      </Typography>
-    </Box>
   );
 }
