@@ -1,11 +1,10 @@
 import { DataGrid, GridRow } from '@mui/x-data-grid';
 import { Box, Tooltip, Typography } from '@mui/material';
-import { forwardRef, useState } from 'react';
+import { forwardRef } from 'react';
 import { formatMoney, formatVolume, formatPrice, formatNumber, formatCountry, formatPercent } from '../../shared/formatters';
 import { StockTooltip } from './StockTooltip';
 import { formatSignedPercent } from './StockTooltipConfig';
 import { trackTableInteraction } from '../../shared/analytics';
-import { StockScoreDrawer } from './StockScoreDrawer';
 
 const COLORS = {
   success: '#00d4aa',
@@ -43,9 +42,7 @@ const TooltipRow = forwardRef(function TooltipRow(props, ref) {
   );
 });
 
-export default function TableView({ data }) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedStock, setSelectedStock] = useState(null);
+export default function TableView({ data, onStockSelect, selectedTicker }) {
 
   const columns = [
     {
@@ -337,15 +334,14 @@ export default function TableView({ data }) {
       ticker: params.row.Ticker,
       company: params.row.Company,
     });
-    setSelectedStock(params.row);
-    setDrawerOpen(true);
+    onStockSelect(params.row.Ticker);
   };
 
   return (
     <>
       <Box
         sx={{
-          height: 'calc(100vh - 300px)',
+          height: '100%',
           bgcolor: 'background.paper',
           borderRadius: 3,
           '& .MuiDataGrid-root': {
@@ -384,6 +380,12 @@ export default function TableView({ data }) {
           '& .MuiDataGrid-row': {
             cursor: 'pointer',
           },
+          '& .MuiDataGrid-row.selected-row': {
+            bgcolor: 'action.selected',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          },
         }}
       >
         <DataGrid
@@ -404,17 +406,14 @@ export default function TableView({ data }) {
           slots={{
             row: TooltipRow,
           }}
+          getRowClassName={(params) =>
+            params.row.Ticker === selectedTicker ? 'selected-row' : ''
+          }
           onSortModelChange={handleSortModelChange}
           onPaginationModelChange={handlePaginationModelChange}
           onRowClick={handleRowClick}
         />
       </Box>
-
-      <StockScoreDrawer
-        open={drawerOpen}
-        stock={selectedStock}
-        onClose={() => setDrawerOpen(false)}
-      />
     </>
   );
 }

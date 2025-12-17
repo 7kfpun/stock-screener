@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ThemeProvider,
   createTheme,
@@ -18,6 +18,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   IconButton,
+  useMediaQuery,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TableRowsIcon from '@mui/icons-material/TableRows';
@@ -29,6 +30,7 @@ import { useStockData } from '../../application/useStockData.js';
 import TableView from '../components/TableView.jsx';
 import HeatmapView from '../components/HeatmapView.jsx';
 import DatePickerPopover from '../components/DatePickerPopover.jsx';
+import { StockDetailPanel } from '../components/StockDetailPanel.jsx';
 import { trackThemeChange, trackViewChange, trackSearch, trackAccordionToggle } from '../../shared/analytics.js';
 
 const getTheme = (mode) => createTheme({
@@ -74,6 +76,11 @@ function AppView() {
     const params = new URLSearchParams(window.location.search);
     return params.get('view') || 'table';
   });
+  const [selectedTicker, setSelectedTicker] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('ticker') || null;
+  });
+  const hasAutoSelected = useRef(false);
 
   // Detect system theme preference
   const systemPrefersDark = useMemo(() => {
@@ -89,6 +96,7 @@ function AppView() {
   }, [themeMode, systemPrefersDark]);
 
   const theme = useMemo(() => getTheme(actualTheme), [actualTheme]);
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Listen for system theme changes when in auto mode
   useEffect(() => {
@@ -120,8 +128,13 @@ function AppView() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     params.set('view', view);
+    if (selectedTicker) {
+      params.set('ticker', selectedTicker);
+    } else {
+      params.delete('ticker');
+    }
     window.history.replaceState({}, '', `${window.location.pathname}?${params}`);
-  }, [view]);
+  }, [view, selectedTicker]);
 
   const handleViewChange = (_event, newView) => {
     if (newView !== null) {
@@ -139,6 +152,27 @@ function AppView() {
       )
     );
   }, [stocks, searchTerm]);
+
+  // Auto-select top-ranked stock on initial load (desktop only)
+  useEffect(() => {
+    if (!hasAutoSelected.current && !selectedTicker && stocks.length > 0 && !isMobile) {
+      const topStock = [...stocks].sort((a, b) =>
+        (b.Investor_Score || 0) - (a.Investor_Score || 0)
+      )[0];
+      if (topStock) {
+        setSelectedTicker(topStock.Ticker);
+        hasAutoSelected.current = true;
+      }
+    }
+  }, [stocks, selectedTicker, isMobile]);
+
+  // Calculate selected stock from current data
+  const selectedStock = useMemo(() => {
+    if (!selectedTicker) return null;
+    return (view === 'table' ? filteredData : stocks).find(
+      s => s.Ticker === selectedTicker
+    );
+  }, [selectedTicker, filteredData, stocks, view]);
 
   // Track search with debouncing
   useEffect(() => {
@@ -364,10 +398,40 @@ function AppView() {
         )}
 
         {!loading && !error && (
-          <>
-            {view === 'table' && <TableView data={filteredData} />}
-            {view === 'heatmap' && <HeatmapView data={stocks} />}
-          </>
+          <Box sx={{ display: 'flex', gap: 0, height: 'calc(100vh - 300px)' }}>
+            <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+              {view === 'table' && (
+                <TableView
+                  data={filteredData}
+                  onStockSelect={setSelectedTicker}
+                  selectedTicker={selectedTicker}
+                />
+              )}
+              {view === 'heatmap' && (
+                <HeatmapView
+                  data={stocks}
+                  onStockSelect={setSelectedTicker}
+                  selectedTicker={selectedTicker}
+                />
+              )}
+            </Box>
+
+            {!isMobile && selectedStock && (
+              <StockDetailPanel
+                stock={selectedStock}
+                onClose={() => setSelectedTicker(null)}
+                isMobile={false}
+              />
+            )}
+          </Box>
+        )}
+
+        {isMobile && selectedStock && (
+          <StockDetailPanel
+            stock={selectedStock}
+            onClose={() => setSelectedTicker(null)}
+            isMobile={true}
+          />
         )}
       </Container>
     </ThemeProvider>

@@ -1,12 +1,14 @@
 import {
-  Drawer,
   Box,
   IconButton,
   Typography,
   Divider,
   Chip,
   Stack,
-  useTheme
+  useTheme,
+  Dialog,
+  AppBar,
+  Toolbar
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import {
@@ -23,14 +25,10 @@ import { tooltipFieldGroups } from './StockTooltipConfig';
 import { formatCountry } from '../../shared/formatters';
 
 /**
- * StockScoreDrawer - Displays detailed Investor Score breakdown in a right-side drawer
- * Features:
- * - Radar chart visualization of the 4 score components
- * - Progress bars for each metric
- * - Key metrics display
- * - Color-coded score tier (High/Medium/Low)
+ * StockDetailPanel - Displays detailed Investor Score breakdown
+ * Responsive: Desktop (split-view panel) / Mobile (full-screen dialog)
  */
-export function StockScoreDrawer({ open, stock, onClose }) {
+export function StockDetailPanel({ stock, onClose, isMobile }) {
   const theme = useTheme();
 
   if (!stock) return null;
@@ -38,7 +36,6 @@ export function StockScoreDrawer({ open, stock, onClose }) {
   const breakdown = calculateScoreBreakdown(stock);
   const score = stock.Investor_Score || 0;
 
-  // Determine score tier
   const getScoreTier = (score) => {
     if (score >= 80) return { label: 'High', color: 'success' };
     if (score >= 50) return { label: 'Medium', color: 'secondary' };
@@ -47,18 +44,8 @@ export function StockScoreDrawer({ open, stock, onClose }) {
 
   const tier = getScoreTier(score);
 
-  return (
-    <Drawer
-      anchor="right"
-      open={open}
-      onClose={onClose}
-      PaperProps={{
-        sx: {
-          width: { xs: '100%', sm: 400, md: 480 },
-          p: 3
-        }
-      }}
-    >
+  const content = (
+    <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
         <Box sx={{ flexGrow: 1 }}>
@@ -81,9 +68,19 @@ export function StockScoreDrawer({ open, stock, onClose }) {
             />
           </Stack>
         </Box>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        {!isMobile && (
+          <IconButton
+            onClick={() => onClose(null)}
+            size="small"
+            sx={{
+              '&:hover': {
+                bgcolor: 'action.hover',
+              }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        )}
       </Box>
 
       <Divider sx={{ mb: 3 }} />
@@ -126,6 +123,7 @@ export function StockScoreDrawer({ open, stock, onClose }) {
             fill={theme.palette.primary.main}
             fillOpacity={0.5}
             strokeWidth={2}
+            isAnimationActive={false}
           />
 
           <Tooltip
@@ -184,7 +182,7 @@ export function StockScoreDrawer({ open, stock, onClose }) {
         </Stack>
       </Box>
 
-      {/* Complete Stock Details from Tooltip */}
+      {/* Complete Stock Details */}
       <Divider sx={{ my: 3 }} />
 
       {/* Company Info */}
@@ -238,6 +236,49 @@ export function StockScoreDrawer({ open, stock, onClose }) {
           </Box>
         ))}
       </Stack>
-    </Drawer>
+    </Box>
+  );
+
+  // Mobile: Full-screen dialog
+  if (isMobile) {
+    return (
+      <Dialog fullScreen open={!!stock} onClose={() => onClose(null)}>
+        <AppBar sx={{ position: 'relative' }}>
+          <Toolbar>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              Stock Details
+            </Typography>
+            <IconButton
+              edge="end"
+              color="inherit"
+              onClick={() => onClose(null)}
+              aria-label="close"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+        {content}
+      </Dialog>
+    );
+  }
+
+  // Desktop: Split-view panel
+  return (
+    <Box
+      sx={{
+        width: 500,
+        minWidth: 500,
+        maxWidth: 500,
+        flexShrink: 0,
+        height: '100%',
+        bgcolor: 'background.paper',
+        borderLeft: '1px solid',
+        borderColor: 'divider',
+        overflow: 'hidden'
+      }}
+    >
+      {content}
+    </Box>
   );
 }

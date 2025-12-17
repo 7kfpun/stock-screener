@@ -3,7 +3,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { StockTooltip } from './StockTooltip';
 import { formatSignedPercent } from './StockTooltipConfig';
 import { trackHeatmapInteraction } from '../../shared/analytics';
-import { StockScoreDrawer } from './StockScoreDrawer';
 
 function getHeatmapColor(changePercent) {
   const percent = changePercent * 100;
@@ -161,9 +160,7 @@ const numberOrZero = (value) => {
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-export default function HeatmapView({ data }) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedStock, setSelectedStock] = useState(null);
+export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
   const [groupBy, setGroupBy] = useState(() => {
     return localStorage.getItem('heatmapGroupBy') || 'sector';
   });
@@ -185,10 +182,9 @@ export default function HeatmapView({ data }) {
     trackHeatmapInteraction('size_by_change', { size_by: newValue });
   };
 
-  const handleTileClick = (ticker, company, stockData) => {
+  const handleTileClick = (ticker, company) => {
     trackHeatmapInteraction('tile_click', { ticker, company });
-    setSelectedStock(stockData);
-    setDrawerOpen(true);
+    onStockSelect(ticker);
   };
 
   // Helper function to get size value based on selected metric
@@ -275,7 +271,7 @@ export default function HeatmapView({ data }) {
   }, [data, groupBy, sizeBy, getSizeValue]);
 
   return (
-    <Box>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
         sx={{
           display: 'flex',
@@ -351,7 +347,8 @@ export default function HeatmapView({ data }) {
           bgcolor: 'background.paper',
           borderRadius: 3,
           p: 1,
-          height: 'calc(100vh - 320px)',
+          flexGrow: 1,
+          minHeight: 0,
         }}
       >
         {sectors.map((sector) => {
@@ -430,7 +427,7 @@ export default function HeatmapView({ data }) {
                       }}
                     >
                       <Box
-                        onClick={() => handleTileClick(item.ticker, item.company, item.stockData)}
+                        onClick={() => handleTileClick(item.ticker, item.company)}
                         sx={{
                           position: 'absolute',
                           left: `${(item.x / sectorWidth) * 100}%`,
@@ -438,7 +435,9 @@ export default function HeatmapView({ data }) {
                           width: `${(item.width / sectorWidth) * 100}%`,
                           height: `${(item.height / sectorHeight) * 100}%`,
                           bgcolor: color,
-                          border: '1px solid rgba(0,0,0,0.2)',
+                          border: item.ticker === selectedTicker
+                            ? '3px solid white'
+                            : '1px solid rgba(0,0,0,0.2)',
                           cursor: 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
@@ -446,6 +445,9 @@ export default function HeatmapView({ data }) {
                           alignItems: 'center',
                           p: 0.5,
                           transition: 'all 0.15s',
+                          boxShadow: item.ticker === selectedTicker
+                            ? '0 0 12px rgba(255,255,255,0.6)'
+                            : 'none',
                           '&:hover': {
                             filter: 'brightness(1.2)',
                             zIndex: 50,
@@ -507,12 +509,6 @@ export default function HeatmapView({ data }) {
           );
         })}
       </Box>
-
-      <StockScoreDrawer
-        open={drawerOpen}
-        stock={selectedStock}
-        onClose={() => setDrawerOpen(false)}
-      />
     </Box>
   );
 }
