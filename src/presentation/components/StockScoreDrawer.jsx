@@ -19,7 +19,7 @@ import {
   Tooltip
 } from 'recharts';
 import { calculateScoreBreakdown } from '../../domain/stock/scoreCalculator';
-import { tooltipFieldGroups, formatSignedPercent } from './StockTooltip';
+import { tooltipFieldGroups } from './StockTooltipConfig';
 import { formatCountry } from '../../shared/formatters';
 
 /**
