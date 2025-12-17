@@ -1,5 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+
+const { mockUseMediaQuery } = vi.hoisted(() => ({
+  mockUseMediaQuery: vi.fn(),
+}));
+
+vi.mock('@mui/material', async () => {
+  const actual = await vi.importActual('@mui/material');
+  return {
+    ...actual,
+    useMediaQuery: (query) => mockUseMediaQuery(query),
+  };
+});
+
 import AppView from './AppView.jsx';
 
 vi.mock('../../application/useStockData.js', () => ({
@@ -32,6 +45,7 @@ describe('AppView', () => {
   let originalHistory;
 
   beforeEach(() => {
+    mockUseMediaQuery.mockReturnValue(false);
     originalLocation = window.location;
     originalHistory = window.history;
 
@@ -46,7 +60,7 @@ describe('AppView', () => {
     // Mock matchMedia for theme detection
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
-      value: vi.fn().implementation((query) => ({
+      value: vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,
         onchange: null,
@@ -93,42 +107,18 @@ describe('AppView', () => {
 
   describe('Stock selection', () => {
     it('should auto-select top-ranked stock on desktop', async () => {
-      // Mock desktop viewport
-      window.matchMedia = vi.fn().implementation((query) => ({
-        matches: query !== '(max-width: 959.95px)',
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      }));
-
+      mockUseMediaQuery.mockReturnValue(false);
       render(<AppView />);
 
-      // Should auto-select AAPL (highest score: 85)
       await waitFor(() => {
-        expect(screen.getByText('AAPL')).toBeInTheDocument();
+        expect(screen.getByText('Score Breakdown')).toBeInTheDocument();
       }, { timeout: 3000 });
     });
 
     it('should not auto-select on mobile', () => {
-      // Mock mobile viewport
-      window.matchMedia = vi.fn().implementation((query) => ({
-        matches: query === '(max-width: 959.95px)',
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      }));
-
+      mockUseMediaQuery.mockReturnValue(true);
       render(<AppView />);
 
-      // Stock detail panel should not be visible
       expect(screen.queryByText('Score Breakdown')).not.toBeInTheDocument();
     });
   });
@@ -152,6 +142,9 @@ describe('AppView', () => {
 
     it('should render screening methodology accordion', () => {
       render(<AppView />);
+
+      fireEvent.click(screen.getByText('Methodology'));
+
       expect(screen.getByText(/Screening Methodology/)).toBeInTheDocument();
     });
   });

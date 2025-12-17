@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createStock, createStockCollection } from './Stock.js';
+import { createStock, createStockCollection } from './stock.js';
 
 describe('Stock', () => {
   describe('createStock', () => {
