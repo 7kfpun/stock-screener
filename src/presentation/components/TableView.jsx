@@ -1,8 +1,7 @@
-import { DataGrid, GridRow } from '@mui/x-data-grid';
-import { Box, Tooltip, Typography } from '@mui/material';
-import { forwardRef } from 'react';
+import { DataGrid } from '@mui/x-data-grid';
+import { Box, Typography } from '@mui/material';
+import { useState, useEffect, useMemo } from 'react';
 import { formatMoney, formatVolume, formatPrice, formatNumber, formatCountry, formatPercent } from '../../shared/formatters';
-import { StockTooltip } from './StockTooltip';
 import { formatSignedPercent } from './StockTooltipConfig';
 import { trackTableInteraction } from '../../shared/analytics';
 
@@ -12,37 +11,10 @@ const COLORS = {
   primary: '#8b7ff5',
 };
 
-const TooltipRow = forwardRef(function TooltipRow(props, ref) {
-  const { row } = props;
-  const tooltipContent = row ? <StockTooltip stock={row} /> : '';
-
-  return (
-    <Tooltip
-      title={tooltipContent}
-      arrow
-      followCursor
-      enterDelay={150}
-      componentsProps={{
-        tooltip: {
-          sx: {
-            bgcolor: 'rgba(15,17,24,0.95)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.45)',
-            maxWidth: 380,
-            p: 1.5,
-          },
-        },
-        arrow: {
-          sx: { color: 'rgba(15,17,24,0.95)' },
-        },
-      }}
-    >
-      <GridRow ref={ref} {...props} />
-    </Tooltip>
-  );
-});
-
 export default function TableView({ data, onStockSelect, selectedTicker }) {
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 50 });
+  const [sortModel, setSortModel] = useState([{ field: 'Investor_Score', sort: 'desc' }]);
+  const [focusedRowIndex, setFocusedRowIndex] = useState(null);
 
   const columns = [
     {
@@ -308,12 +280,36 @@ export default function TableView({ data, onStockSelect, selectedTicker }) {
     },
   ];
 
-  const rows = data.map((row, index) => ({
+  const rows = useMemo(() => data.map((row, index) => ({
     id: row.Ticker || index,
     ...row,
-  }));
+  })), [data]);
+
+  const sortedRows = useMemo(() => {
+    const sorted = [...rows];
+    if (sortModel.length > 0) {
+      const { field, sort } = sortModel[0];
+      sorted.sort((a, b) => {
+        const aVal = a[field] ?? '';
+        const bVal = b[field] ?? '';
+        if (sort === 'asc') {
+          return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        }
+        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+      });
+    }
+    return sorted;
+  }, [rows, sortModel]);
+
+  const visibleRows = useMemo(() => {
+    const start = paginationModel.page * paginationModel.pageSize;
+    const end = start + paginationModel.pageSize;
+    return sortedRows.slice(start, end);
+  }, [sortedRows, paginationModel]);
 
   const handleSortModelChange = (model) => {
+    setSortModel(model);
+    setFocusedRowIndex(null); // Reset focus when sorting changes
     if (model.length > 0) {
       trackTableInteraction('sort', {
         field: model[0].field,
@@ -323,6 +319,8 @@ export default function TableView({ data, onStockSelect, selectedTicker }) {
   };
 
   const handlePaginationModelChange = (model) => {
+    setPaginationModel(model);
+    setFocusedRowIndex(null); // Reset focus when page changes
     trackTableInteraction('pagination', {
       page: model.page,
       pageSize: model.pageSize,
@@ -336,6 +334,66 @@ export default function TableView({ data, onStockSelect, selectedTicker }) {
     });
     onStockSelect(params.row.Ticker);
   };
+
+  // Keyboard navigation - select immediately on arrow key
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (visibleRows.length === 0) return;
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        let currentIndex = focusedRowIndex;
+
+        // If no focused index, find currently selected ticker's index
+        if (currentIndex === null && selectedTicker) {
+          currentIndex = visibleRows.findIndex(r => r.Ticker === selectedTicker);
+          if (currentIndex === -1) currentIndex = null;
+        }
+
+        const newIndex = currentIndex === null
+          ? 0
+          : Math.min(currentIndex + 1, visibleRows.length - 1);
+        setFocusedRowIndex(newIndex);
+
+        const selectedRow = visibleRows[newIndex];
+        if (selectedRow) {
+          trackTableInteraction('keyboard_navigate', {
+            ticker: selectedRow.Ticker,
+            company: selectedRow.Company,
+            direction: 'down'
+          });
+          onStockSelect(selectedRow.Ticker);
+        }
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        let currentIndex = focusedRowIndex;
+
+        // If no focused index, find currently selected ticker's index
+        if (currentIndex === null && selectedTicker) {
+          currentIndex = visibleRows.findIndex(r => r.Ticker === selectedTicker);
+          if (currentIndex === -1) currentIndex = null;
+        }
+
+        const newIndex = currentIndex === null
+          ? visibleRows.length - 1
+          : Math.max(currentIndex - 1, 0);
+        setFocusedRowIndex(newIndex);
+
+        const selectedRow = visibleRows[newIndex];
+        if (selectedRow) {
+          trackTableInteraction('keyboard_navigate', {
+            ticker: selectedRow.Ticker,
+            company: selectedRow.Company,
+            direction: 'up'
+          });
+          onStockSelect(selectedRow.Ticker);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [focusedRowIndex, onStockSelect, selectedTicker, visibleRows]);
 
   return (
     <>
@@ -386,29 +444,32 @@ export default function TableView({ data, onStockSelect, selectedTicker }) {
               bgcolor: 'action.hover',
             },
           },
+          '& .MuiDataGrid-row.focused-row': {
+            outline: '2px solid',
+            outlineColor: COLORS.primary,
+            outlineOffset: '-2px',
+          },
         }}
       >
         <DataGrid
           rows={rows}
           columns={columns}
-          initialState={{
-            pagination: {
-              paginationModel: { pageSize: 50 },
-            },
-            sorting: {
-              sortModel: [{ field: 'Investor_Score', sort: 'desc' }],
-            },
-          }}
+          paginationModel={paginationModel}
+          sortModel={sortModel}
           pageSizeOptions={[25, 50, 100]}
           disableRowSelectionOnClick
           density="compact"
           getRowHeight={() => 54}
-          slots={{
-            row: TooltipRow,
+          getRowClassName={(params) => {
+            const rowIndex = visibleRows.findIndex(r => r.id === params.id);
+            const isFocused = focusedRowIndex !== null && rowIndex === focusedRowIndex;
+            const isSelected = params.row.Ticker === selectedTicker;
+
+            if (isFocused && isSelected) return 'focused-row selected-row';
+            if (isFocused) return 'focused-row';
+            if (isSelected) return 'selected-row';
+            return '';
           }}
-          getRowClassName={(params) =>
-            params.row.Ticker === selectedTicker ? 'selected-row' : ''
-          }
           onSortModelChange={handleSortModelChange}
           onPaginationModelChange={handlePaginationModelChange}
           onRowClick={handleRowClick}

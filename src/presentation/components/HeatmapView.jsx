@@ -1,6 +1,5 @@
-import { Box, Typography, Select, MenuItem, FormControl, Tooltip } from '@mui/material';
-import { useState, useMemo, useCallback } from 'react';
-import { StockTooltip } from './StockTooltip';
+import { Box, Typography, Select, MenuItem, FormControl } from '@mui/material';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { formatSignedPercent } from './StockTooltipConfig';
 import { trackHeatmapInteraction } from '../../shared/analytics';
 
@@ -270,6 +269,102 @@ export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
       });
   }, [data, groupBy, sizeBy, getSizeValue]);
 
+  // Store all laid out tiles for keyboard navigation
+  const allTilesRef = useRef([]);
+
+  // Keyboard navigation for heatmap (2D navigation)
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const tiles = allTilesRef.current;
+      if (tiles.length === 0) return;
+
+      // Find currently selected tile
+      let currentIndex = selectedTicker
+        ? tiles.findIndex(t => t.ticker === selectedTicker)
+        : -1;
+
+      const findTileInDirection = (direction) => {
+        if (currentIndex === -1) {
+          // No selection, select first tile
+          return tiles[0];
+        }
+
+        const current = tiles[currentIndex];
+        const currentCenterX = current.x + current.width / 2;
+        const currentCenterY = current.y + current.height / 2;
+
+        let candidates = [];
+
+        switch (direction) {
+          case 'right':
+            candidates = tiles.filter(t => t.x + t.width / 2 > currentCenterX);
+            candidates.sort((a, b) => {
+              const aDist = Math.abs((a.y + a.height / 2) - currentCenterY) + (a.x - current.x);
+              const bDist = Math.abs((b.y + b.height / 2) - currentCenterY) + (b.x - current.x);
+              return aDist - bDist;
+            });
+            break;
+          case 'left':
+            candidates = tiles.filter(t => t.x + t.width / 2 < currentCenterX);
+            candidates.sort((a, b) => {
+              const aDist = Math.abs((a.y + a.height / 2) - currentCenterY) + (current.x - a.x);
+              const bDist = Math.abs((b.y + b.height / 2) - currentCenterY) + (current.x - b.x);
+              return aDist - bDist;
+            });
+            break;
+          case 'down':
+            candidates = tiles.filter(t => t.y + t.height / 2 > currentCenterY);
+            candidates.sort((a, b) => {
+              const aDist = Math.abs((a.x + a.width / 2) - currentCenterX) + (a.y - current.y);
+              const bDist = Math.abs((b.x + b.width / 2) - currentCenterX) + (b.y - current.y);
+              return aDist - bDist;
+            });
+            break;
+          case 'up':
+            candidates = tiles.filter(t => t.y + t.height / 2 < currentCenterY);
+            candidates.sort((a, b) => {
+              const aDist = Math.abs((a.x + a.width / 2) - currentCenterX) + (current.y - a.y);
+              const bDist = Math.abs((b.x + b.width / 2) - currentCenterX) + (current.y - b.y);
+              return aDist - bDist;
+            });
+            break;
+        }
+
+        return candidates[0] || current;
+      };
+
+      let direction = null;
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        direction = 'right';
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        direction = 'left';
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        direction = 'down';
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        direction = 'up';
+      }
+
+      if (direction) {
+        const targetTile = findTileInDirection(direction);
+        if (targetTile) {
+          trackHeatmapInteraction('keyboard_navigate', {
+            ticker: targetTile.ticker,
+            company: targetTile.company,
+            direction
+          });
+          onStockSelect(targetTile.ticker);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedTicker, onStockSelect]);
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
@@ -351,7 +446,7 @@ export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
           minHeight: 0,
         }}
       >
-        {sectors.map((sector) => {
+        {sectors.map((sector, sectorIndex) => {
           // Calculate treemap layout for this sector
           const isNoGroup = groupBy === 'none';
           // For no group, use almost all available space; for sectors, divide space equally
@@ -362,6 +457,28 @@ export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
           const layout = sizeBy === 'monoSize'
             ? gridLayout(sector.stocks, sectorWidth, sectorHeight)
             : squarify(sector.stocks, 0, 0, sectorWidth, sectorHeight);
+
+          // Store tiles for keyboard navigation
+          if (sectorIndex === 0) {
+            allTilesRef.current = [];
+          }
+
+          // Calculate vertical offset for this sector (sum of all previous sector heights + gaps)
+          const verticalOffset = sectors.slice(0, sectorIndex).reduce((offset) => {
+            const prevHeight = isNoGroup
+              ? window.innerHeight - 340
+              : Math.max(200, (window.innerHeight - 340) / sectors.length - 8);
+            // Add sector height + gap between sectors (mb: 1 = ~8px in MUI default spacing)
+            return offset + prevHeight + 8;
+          }, 0);
+
+          // Add this sector's tiles with adjusted y-coordinates to the global list
+          const adjustedLayout = layout.map(tile => ({
+            ...tile,
+            y: tile.y + verticalOffset,
+            sectorName: sector.name
+          }));
+          allTilesRef.current.push(...adjustedLayout);
 
           return (
             <Box key={sector.name} sx={{ mb: 1, position: 'relative' }}>
@@ -405,30 +522,10 @@ export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
                   const score = numberOrZero(item.stockData.Investor_Score);
 
                   return (
-                    <Tooltip
+                    <Box
                       key={item.ticker}
-                      title={<StockTooltip stock={item.stockData} />}
-                      arrow
-                      followCursor
-                      enterDelay={150}
-                      componentsProps={{
-                        tooltip: {
-                          sx: {
-                            bgcolor: 'rgba(15,17,24,0.95)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.45)',
-                            maxWidth: 380,
-                            p: 1.5,
-                          },
-                        },
-                        arrow: {
-                          sx: { color: 'rgba(15,17,24,0.95)' },
-                        },
-                      }}
-                    >
-                      <Box
-                        onClick={() => handleTileClick(item.ticker, item.company)}
-                        sx={{
+                      onClick={() => handleTileClick(item.ticker, item.company)}
+                      sx={{
                           position: 'absolute',
                           left: `${(item.x / sectorWidth) * 100}%`,
                           top: `${(item.y / sectorHeight) * 100}%`,
@@ -500,8 +597,7 @@ export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
                             {changeText}
                           </Typography>
                         )}
-                      </Box>
-                    </Tooltip>
+                    </Box>
                   );
                 })}
               </Box>

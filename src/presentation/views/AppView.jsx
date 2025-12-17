@@ -14,24 +14,25 @@ import {
   ToggleButtonGroup,
   CircularProgress,
   Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   IconButton,
   useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TableRowsIcon from '@mui/icons-material/TableRows';
 import GridViewIcon from '@mui/icons-material/GridView';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 import { useStockData } from '../../application/useStockData.js';
 import TableView from '../components/TableView.jsx';
 import HeatmapView from '../components/HeatmapView.jsx';
 import DatePickerPopover from '../components/DatePickerPopover.jsx';
 import { StockDetailPanel } from '../components/StockDetailPanel.jsx';
-import { trackThemeChange, trackViewChange, trackSearch, trackAccordionToggle } from '../../shared/analytics.js';
+import { trackThemeChange, trackViewChange, trackSearch } from '../../shared/analytics.js';
 
 const getTheme = (mode) => createTheme({
   palette: {
@@ -80,6 +81,7 @@ function AppView() {
     const params = new URLSearchParams(window.location.search);
     return params.get('ticker') || null;
   });
+  const [methodologyOpen, setMethodologyOpen] = useState(false);
   const hasAutoSelected = useRef(false);
 
   // Detect system theme preference
@@ -187,17 +189,44 @@ function AppView() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ mb: 3, p: 3, bgcolor: 'background.paper', borderRadius: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+      <Container maxWidth="xl" sx={{ py: 2 }}>
+        <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>
               Stock Screener
             </Typography>
-            <IconButton onClick={toggleTheme} color="primary" size="large" title={`Theme: ${themeMode}`}>
-              {themeMode === 'auto' && <SettingsBrightnessIcon />}
-              {themeMode === 'dark' && <DarkModeIcon />}
-              {themeMode === 'light' && <LightModeIcon />}
-            </IconButton>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Box
+                onClick={() => setMethodologyOpen(true)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 1.5,
+                  py: 0.5,
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  borderRadius: 1,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                    transform: 'translateY(-1px)',
+                    boxShadow: 2,
+                  },
+                }}
+              >
+                <InfoOutlinedIcon fontSize="small" />
+                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                  Methodology
+                </Typography>
+              </Box>
+              <IconButton onClick={toggleTheme} color="primary" size="small" title={`Theme: ${themeMode}`}>
+                {themeMode === 'auto' && <SettingsBrightnessIcon />}
+                {themeMode === 'dark' && <DarkModeIcon />}
+                {themeMode === 'light' && <LightModeIcon />}
+              </IconButton>
+            </Box>
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -251,140 +280,6 @@ function AppView() {
           </Box>
         </Box>
 
-        <Accordion
-          sx={{ mb: 3, bgcolor: 'background.paper', borderRadius: 2 }}
-          onChange={(_, expanded) => trackAccordionToggle('screening_methodology', expanded)}
-        >
-          <AccordionSummary
-            expandIcon={<ExpandMoreIcon />}
-            sx={{
-              '&:hover': { bgcolor: 'action.hover' },
-              borderRadius: 2,
-            }}
-          >
-            <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-              📊 Screening Methodology
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 2 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 3 }}>
-              <Box
-                sx={{
-                  bgcolor: actualTheme === 'dark' ? 'rgba(139, 127, 245, 0.08)' : 'rgba(139, 127, 245, 0.05)',
-                  p: 3,
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: actualTheme === 'dark' ? 'rgba(139, 127, 245, 0.2)' : 'rgba(139, 127, 245, 0.15)',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    color: 'primary.main',
-                    fontWeight: 700,
-                    mb: 2,
-                    fontSize: '1.1rem',
-                    letterSpacing: '0.3px',
-                  }}
-                >
-                  🔍 Initial Filters
-                </Typography>
-                <Box component="ul" sx={{ m: 0, pl: 2.5, '& li': { mb: 1, fontSize: '0.875rem', lineHeight: 1.6 } }}>
-                  <li>Market Cap: Over $300M (Small cap+)</li>
-                  <li>Average Volume: Over 100K</li>
-                  <li>Price: Over $15</li>
-                  <li>50-Day SMA: Price above SMA50</li>
-                  <li>200-Day SMA: Price above SMA200</li>
-                  <li>Institutional Ownership: Over 20%</li>
-                  <li>EPS growth this year: Positive (&gt;0%)</li>
-                  <li>EPS growth next year: Positive (&gt;0%)</li>
-                  <li>EPS growth past 5 years: Positive (&gt;0%)</li>
-                  <li>EPS growth next 5 years: Positive (&gt;0%)</li>
-                  <li>EPS growth qtr over qtr: High (&gt;25%)</li>
-                  <li>Sales growth past 5 years: Positive (&gt;0%)</li>
-                  <li>Sales growth qtr over qtr: Positive (&gt;0%)</li>
-                </Box>
-              </Box>
-
-              <Box
-                sx={{
-                  bgcolor: actualTheme === 'dark' ? 'rgba(0, 212, 170, 0.08)' : 'rgba(0, 212, 170, 0.05)',
-                  p: 3,
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: actualTheme === 'dark' ? 'rgba(0, 212, 170, 0.2)' : 'rgba(0, 212, 170, 0.15)',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    color: 'secondary.main',
-                    fontWeight: 700,
-                    mb: 2,
-                    fontSize: '1.1rem',
-                    letterSpacing: '0.3px',
-                  }}
-                >
-                  ✓ Additional Filters
-                </Typography>
-                <Box component="ul" sx={{ m: 0, pl: 2.5, '& li': { mb: 1, fontSize: '0.875rem', lineHeight: 1.6 } }}>
-                  <li>Market Cap: Must be over $500M (stricter)</li>
-                  <li>52-Week Low: Price at least 30% above low</li>
-                  <li>52-Week High: Price within 20% of high</li>
-                </Box>
-              </Box>
-
-              <Box
-                sx={{
-                  bgcolor: actualTheme === 'dark' ? 'rgba(255, 107, 107, 0.08)' : 'rgba(255, 107, 107, 0.05)',
-                  p: 3,
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: actualTheme === 'dark' ? 'rgba(255, 107, 107, 0.2)' : 'rgba(255, 107, 107, 0.15)',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    color: 'error.main',
-                    fontWeight: 700,
-                    mb: 2,
-                    fontSize: '1.1rem',
-                    letterSpacing: '0.3px',
-                  }}
-                >
-                  ⭐ Investor Score (0-100)
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '0.875rem',
-                    mb: 2,
-                    color: 'text.secondary',
-                    fontStyle: 'italic',
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Stocks are ranked based on four key factors:
-                </Typography>
-                <Box component="ul" sx={{ m: 0, pl: 2.5, '& li': { mb: 1, fontSize: '0.875rem', lineHeight: 1.6 } }}>
-                  <li>
-                    <strong>PEG Ratio</strong> (max 30 pts): &lt;1 = 30pts, 1-2 = 20pts, &gt;2 = 10pts
-                  </li>
-                  <li>
-                    <strong>ROE</strong> (max 30 pts): &gt;20% = 30pts, &gt;10% = 20pts, &gt;0% = 10pts
-                  </li>
-                  <li>
-                    <strong>Profit Margin</strong> (max 20 pts): &gt;20% = 20pts, &gt;10% = 15pts, &gt;0% = 10pts
-                  </li>
-                  <li>
-                    <strong>EPS Growth Next 5Y</strong> (max 20 pts): &gt;30% = 20pts, &gt;20% = 15pts, &gt;10% = 10pts
-                  </li>
-                </Box>
-              </Box>
-            </Box>
-          </AccordionDetails>
-        </Accordion>
-
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
             <CircularProgress />
@@ -398,7 +293,7 @@ function AppView() {
         )}
 
         {!loading && !error && (
-          <Box sx={{ display: 'flex', gap: 0, height: 'calc(100vh - 300px)' }}>
+          <Box sx={{ display: 'flex', gap: 0, height: 'calc(100vh - 200px)' }}>
             <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
               {view === 'table' && (
                 <TableView
@@ -433,6 +328,206 @@ function AppView() {
             isMobile={true}
           />
         )}
+
+        <Dialog
+          open={methodologyOpen}
+          onClose={() => setMethodologyOpen(false)}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: {
+              maxHeight: '90vh',
+            }
+          }}
+        >
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              📊 Screening Methodology
+            </Typography>
+            <IconButton onClick={() => setMethodologyOpen(false)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent>
+            {/* Philosophy Section */}
+            <Box sx={{ mb: 4, p: 3, bgcolor: 'action.hover', borderRadius: 2, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                💡 Investment Philosophy
+              </Typography>
+              <Typography variant="body1" paragraph sx={{ lineHeight: 1.8 }}>
+                Our screening methodology is built on the principles of <strong>quality growth investing</strong> and <strong>momentum analysis</strong>.
+                We believe that the best investment opportunities combine strong fundamentals, consistent growth, reasonable valuations,
+                and positive price momentum.
+              </Typography>
+              <Typography variant="body1" paragraph sx={{ lineHeight: 1.8 }}>
+                This screener identifies companies that are not only financially healthy but are also positioned for sustainable growth.
+                By filtering for stocks trading above their moving averages and showing strong earnings trends, we focus on companies
+                with both solid fundamentals and positive market sentiment.
+              </Typography>
+              <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
+                The <strong>Investor Score</strong> (0-100) combines four key metrics that research has shown to be predictive of future returns:
+                valuation efficiency (PEG), profitability (ROE & Profit Margin), and growth potential (EPS Growth).
+                This multi-factor approach helps identify well-rounded investment opportunities rather than one-dimensional plays.
+              </Typography>
+            </Box>
+
+            {/* Filtering Strategy */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                🎯 Two-Stage Filtering Strategy
+              </Typography>
+              <Typography variant="body1" paragraph sx={{ lineHeight: 1.8, mb: 3 }}>
+                Our methodology uses a <strong>two-stage filtering process</strong> to identify quality growth stocks with momentum:
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 3, mb: 4 }}>
+              <Box
+                sx={{
+                  bgcolor: actualTheme === 'dark' ? 'rgba(139, 127, 245, 0.08)' : 'rgba(139, 127, 245, 0.05)',
+                  p: 2,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: actualTheme === 'dark' ? 'rgba(139, 127, 245, 0.2)' : 'rgba(139, 127, 245, 0.15)',
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: 'primary.main',
+                    fontWeight: 700,
+                    mb: 1.5,
+                    fontSize: '1rem',
+                  }}
+                >
+                  🔍 Initial Filters
+                </Typography>
+                <Box component="ul" sx={{ m: 0, pl: 2, '& li': { mb: 0.5, fontSize: '0.8rem', lineHeight: 1.5 } }}>
+                  <li>Market Cap: Over $300M</li>
+                  <li>Average Volume: Over 100K</li>
+                  <li>Price: Over $15</li>
+                  <li>50-Day SMA: Price above SMA50</li>
+                  <li>200-Day SMA: Price above SMA200</li>
+                  <li>Institutional Ownership: Over 20%</li>
+                  <li>EPS growth this year: Positive</li>
+                  <li>EPS growth next year: Positive</li>
+                  <li>EPS growth past 5 years: Positive</li>
+                  <li>EPS growth next 5 years: Positive</li>
+                  <li>EPS growth qtr over qtr: High (&gt;25%)</li>
+                  <li>Sales growth past 5 years: Positive</li>
+                  <li>Sales growth qtr over qtr: Positive</li>
+                </Box>
+              </Box>
+
+              <Box
+                sx={{
+                  bgcolor: actualTheme === 'dark' ? 'rgba(0, 212, 170, 0.08)' : 'rgba(0, 212, 170, 0.05)',
+                  p: 2,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: actualTheme === 'dark' ? 'rgba(0, 212, 170, 0.2)' : 'rgba(0, 212, 170, 0.15)',
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: 'secondary.main',
+                    fontWeight: 700,
+                    mb: 1.5,
+                    fontSize: '1rem',
+                  }}
+                >
+                  ✓ Additional Filters
+                </Typography>
+                <Box component="ul" sx={{ m: 0, pl: 2, '& li': { mb: 0.5, fontSize: '0.8rem', lineHeight: 1.5 } }}>
+                  <li>Market Cap: Must be over $500M</li>
+                  <li>52-Week Low: Price at least 30% above low</li>
+                  <li>52-Week High: Price within 20% of high</li>
+                </Box>
+              </Box>
+
+              <Box
+                sx={{
+                  bgcolor: actualTheme === 'dark' ? 'rgba(255, 107, 107, 0.08)' : 'rgba(255, 107, 107, 0.05)',
+                  p: 2,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: actualTheme === 'dark' ? 'rgba(255, 107, 107, 0.2)' : 'rgba(255, 107, 107, 0.15)',
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: 'error.main',
+                    fontWeight: 700,
+                    mb: 1.5,
+                    fontSize: '1rem',
+                  }}
+                >
+                  ⭐ Investor Score (0-100)
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.8rem',
+                    mb: 1,
+                    color: 'text.secondary',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Stocks ranked on four key factors:
+                </Typography>
+                <Box component="ul" sx={{ m: 0, pl: 2, '& li': { mb: 0.5, fontSize: '0.8rem', lineHeight: 1.5 } }}>
+                  <li><strong>PEG Ratio</strong> (max 30 pts): &lt;1 = 30pts, 1-2 = 20pts, &gt;2 = 10pts</li>
+                  <li><strong>ROE</strong> (max 30 pts): &gt;20% = 30pts, &gt;10% = 20pts, &gt;0% = 10pts</li>
+                  <li><strong>Profit Margin</strong> (max 20 pts): &gt;20% = 20pts, &gt;10% = 15pts, &gt;0% = 10pts</li>
+                  <li><strong>EPS Growth Next 5Y</strong> (max 20 pts): &gt;30% = 20pts, &gt;20% = 15pts, &gt;10% = 10pts</li>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* How to Use Section */}
+            <Box sx={{ mb: 4, p: 3, bgcolor: 'action.hover', borderRadius: 2, borderLeft: '4px solid', borderColor: 'secondary.main' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                📈 How to Use This Screener
+              </Typography>
+              <Box component="ol" sx={{ m: 0, pl: 3, '& li': { mb: 1.5, lineHeight: 1.8 } }}>
+                <li>
+                  <strong>Start with high-scoring stocks:</strong> Sort by Investor Score to identify the best overall opportunities
+                  based on our multi-factor approach.
+                </li>
+                <li>
+                  <strong>Review fundamentals:</strong> Click on any stock to see detailed metrics. Pay attention to valuation (PEG ratio),
+                  profitability (ROE, margins), and growth rates.
+                </li>
+                <li>
+                  <strong>Check momentum indicators:</strong> Look at the distance from 52-week high/low and moving averages
+                  to understand current price momentum.
+                </li>
+                <li>
+                  <strong>Diversify by sector:</strong> Use the heatmap view to visualize sector exposure and ensure you&apos;re not
+                  over-concentrated in any single industry.
+                </li>
+                <li>
+                  <strong>Do your own research:</strong> This screener is a starting point. Always conduct thorough due diligence
+                  before making investment decisions.
+                </li>
+              </Box>
+            </Box>
+
+            {/* Disclaimer */}
+            <Box sx={{ p: 2, bgcolor: actualTheme === 'dark' ? 'rgba(255, 193, 7, 0.1)' : 'rgba(255, 193, 7, 0.05)', borderRadius: 2, border: '1px solid', borderColor: 'warning.main' }}>
+              <Typography variant="caption" sx={{ display: 'block', mb: 1, fontWeight: 700, color: 'warning.main' }}>
+                ⚠️ IMPORTANT DISCLAIMER
+              </Typography>
+              <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.6, color: 'text.secondary' }}>
+                This screener is for informational and educational purposes only. It does not constitute investment advice,
+                financial advice, or a recommendation to buy or sell any securities. Past performance does not guarantee future results.
+                All investments carry risk, including the potential loss of principal. Always consult with a qualified financial
+                advisor before making investment decisions.
+              </Typography>
+            </Box>
+          </DialogContent>
+        </Dialog>
       </Container>
     </ThemeProvider>
   );

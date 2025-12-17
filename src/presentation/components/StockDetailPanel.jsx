@@ -8,9 +8,11 @@ import {
   useTheme,
   Dialog,
   AppBar,
-  Toolbar
+  Toolbar,
+  Button
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import {
   Radar,
   RadarChart,
@@ -45,26 +47,28 @@ export function StockDetailPanel({ stock, onClose, isMobile }) {
   const tier = getScoreTier(score);
 
   const content = (
-    <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
+    <Box sx={{ height: '100%', overflow: 'auto', p: 2 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
         <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h6" component="div" gutterBottom>
+          <Typography variant="h6" component="div" sx={{ fontSize: '1.1rem', mb: 0.5 }}>
             {stock.Ticker}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75, fontSize: '0.8rem' }}>
             {stock.Company}
           </Typography>
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={0.5}>
             <Chip
               label={`Score: ${score}`}
               color={tier.color}
               size="small"
+              sx={{ height: 20, fontSize: '0.7rem' }}
             />
             <Chip
               label={tier.label}
               variant="outlined"
               size="small"
+              sx={{ height: 20, fontSize: '0.7rem' }}
             />
           </Stack>
         </Box>
@@ -83,7 +87,44 @@ export function StockDetailPanel({ stock, onClose, isMobile }) {
         )}
       </Box>
 
-      <Divider sx={{ mb: 3 }} />
+      {/* External Links */}
+      <Stack direction="row" spacing={0.5} sx={{ mt: 1, mb: 1, flexWrap: 'wrap', gap: 0.5 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          endIcon={<OpenInNewIcon sx={{ fontSize: '0.75rem' }} />}
+          href={`https://finance.yahoo.com/quote/${stock.Ticker}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{ fontSize: '0.65rem', py: 0.25, px: 0.75, minHeight: 24 }}
+        >
+          Yahoo
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          endIcon={<OpenInNewIcon sx={{ fontSize: '0.75rem' }} />}
+          href={`https://www.tradingview.com/symbols/${stock.Ticker}/`}
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{ fontSize: '0.65rem', py: 0.25, px: 0.75, minHeight: 24 }}
+        >
+          TradingView
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          endIcon={<OpenInNewIcon sx={{ fontSize: '0.75rem' }} />}
+          href={`https://www.marketwatch.com/investing/stock/${stock.Ticker}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{ fontSize: '0.65rem', py: 0.25, px: 0.75, minHeight: 24 }}
+        >
+          MarketWatch
+        </Button>
+      </Stack>
+
+      <Divider sx={{ mb: 2 }} />
 
       {/* Radar Chart */}
       <Typography variant="subtitle1" gutterBottom fontWeight="medium">
