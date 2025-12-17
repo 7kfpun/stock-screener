@@ -1,7 +1,8 @@
 import { Box, Typography, Select, MenuItem, FormControl, Tooltip } from '@mui/material';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { StockTooltip, formatSignedPercent } from './StockTooltip';
 import { trackHeatmapInteraction } from '../../shared/analytics';
+import { StockScoreDrawer } from './StockScoreDrawer';
 
 function getHeatmapColor(changePercent) {
   const percent = changePercent * 100;
@@ -160,6 +161,8 @@ const numberOrZero = (value) => {
 };
 
 export default function HeatmapView({ data }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedStock, setSelectedStock] = useState(null);
   const [groupBy, setGroupBy] = useState(() => {
     return localStorage.getItem('heatmapGroupBy') || 'sector';
   });
@@ -181,12 +184,14 @@ export default function HeatmapView({ data }) {
     trackHeatmapInteraction('size_by_change', { size_by: newValue });
   };
 
-  const handleTileClick = (ticker, company) => {
+  const handleTileClick = (ticker, company, stockData) => {
     trackHeatmapInteraction('tile_click', { ticker, company });
+    setSelectedStock(stockData);
+    setDrawerOpen(true);
   };
 
   // Helper function to get size value based on selected metric
-  const getSizeValue = (stock) => {
+  const getSizeValue = useCallback((stock) => {
     switch (sizeBy) {
       case 'marketCap':
         return numberOrZero(stock['Market Cap']);
@@ -197,7 +202,7 @@ export default function HeatmapView({ data }) {
       default:
         return numberOrZero(stock['Market Cap']);
     }
-  };
+  }, [sizeBy]);
 
   const sectors = useMemo(() => {
     if (groupBy === 'none') {
@@ -266,7 +271,7 @@ export default function HeatmapView({ data }) {
         const bFirstStockVal = b.stocks[0]?.sortMetric || 0;
         return bFirstStockVal - aFirstStockVal;
       });
-  }, [data, groupBy, sizeBy]);
+  }, [data, groupBy, sizeBy, getSizeValue]);
 
   return (
     <Box>
@@ -424,7 +429,7 @@ export default function HeatmapView({ data }) {
                       }}
                     >
                       <Box
-                        onClick={() => handleTileClick(item.ticker, item.company)}
+                        onClick={() => handleTileClick(item.ticker, item.company, item.stockData)}
                         sx={{
                           position: 'absolute',
                           left: `${(item.x / sectorWidth) * 100}%`,
@@ -501,6 +506,12 @@ export default function HeatmapView({ data }) {
           );
         })}
       </Box>
+
+      <StockScoreDrawer
+        open={drawerOpen}
+        stock={selectedStock}
+        onClose={() => setDrawerOpen(false)}
+      />
     </Box>
   );
 }

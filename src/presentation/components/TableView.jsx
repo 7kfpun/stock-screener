@@ -1,9 +1,10 @@
 import { DataGrid, GridRow } from '@mui/x-data-grid';
 import { Box, Tooltip, Typography } from '@mui/material';
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import { formatMoney, formatVolume, formatPrice, formatNumber, formatCountry, formatPercent } from '../../shared/formatters';
 import { StockTooltip, formatSignedPercent } from './StockTooltip';
 import { trackTableInteraction } from '../../shared/analytics';
+import { StockScoreDrawer } from './StockScoreDrawer';
 
 const COLORS = {
   success: '#00d4aa',
@@ -42,6 +43,9 @@ const TooltipRow = forwardRef(function TooltipRow(props, ref) {
 });
 
 export default function TableView({ data }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedStock, setSelectedStock] = useState(null);
+
   const columns = [
     {
       field: 'Investor_Score',
@@ -332,71 +336,84 @@ export default function TableView({ data }) {
       ticker: params.row.Ticker,
       company: params.row.Company,
     });
+    setSelectedStock(params.row);
+    setDrawerOpen(true);
   };
 
   return (
-    <Box
-      sx={{
-        height: 'calc(100vh - 300px)',
-        bgcolor: 'background.paper',
-        borderRadius: 3,
-        '& .MuiDataGrid-root': {
-          border: 'none',
-        },
-        '& .MuiDataGrid-columnHeaders': {
-          bgcolor: 'rgba(31, 34, 55, 0.8)',
-          borderRadius: '12px 12px 0 0',
-        },
-        '& .MuiDataGrid-virtualScroller': {
+    <>
+      <Box
+        sx={{
+          height: 'calc(100vh - 300px)',
           bgcolor: 'background.paper',
-        },
-        '& .score-high': {
-          bgcolor: 'rgba(0, 212, 170, 0.15)',
-          color: COLORS.success,
-          fontWeight: 700,
-        },
-        '& .score-medium': {
-          bgcolor: 'rgba(139, 127, 245, 0.15)',
-          color: COLORS.primary,
-          fontWeight: 700,
-        },
-        '& .score-low': {
-          bgcolor: 'rgba(255, 107, 107, 0.15)',
-          color: COLORS.danger,
-          fontWeight: 700,
-        },
-        '& .change-positive': {
-          color: COLORS.success,
-          fontWeight: 600,
-        },
-        '& .change-negative': {
-          color: COLORS.danger,
-          fontWeight: 600,
-        },
-      }}
-    >
-      <DataGrid
-        rows={rows}
-        columns={columns}
-        initialState={{
-          pagination: {
-            paginationModel: { pageSize: 50 },
+          borderRadius: 3,
+          '& .MuiDataGrid-root': {
+            border: 'none',
           },
-          sorting: {
-            sortModel: [{ field: 'Investor_Score', sort: 'desc' }],
+          '& .MuiDataGrid-columnHeaders': {
+            bgcolor: 'rgba(31, 34, 55, 0.8)',
+            borderRadius: '12px 12px 0 0',
+          },
+          '& .MuiDataGrid-virtualScroller': {
+            bgcolor: 'background.paper',
+          },
+          '& .score-high': {
+            bgcolor: 'rgba(0, 212, 170, 0.15)',
+            color: COLORS.success,
+            fontWeight: 700,
+          },
+          '& .score-medium': {
+            bgcolor: 'rgba(139, 127, 245, 0.15)',
+            color: COLORS.primary,
+            fontWeight: 700,
+          },
+          '& .score-low': {
+            bgcolor: 'rgba(255, 107, 107, 0.15)',
+            color: COLORS.danger,
+            fontWeight: 700,
+          },
+          '& .change-positive': {
+            color: COLORS.success,
+            fontWeight: 600,
+          },
+          '& .change-negative': {
+            color: COLORS.danger,
+            fontWeight: 600,
+          },
+          '& .MuiDataGrid-row': {
+            cursor: 'pointer',
           },
         }}
-        pageSizeOptions={[25, 50, 100]}
-        disableRowSelectionOnClick
-        density="compact"
-        getRowHeight={() => 54}
-        slots={{
-          row: TooltipRow,
-        }}
-        onSortModelChange={handleSortModelChange}
-        onPaginationModelChange={handlePaginationModelChange}
-        onRowClick={handleRowClick}
+      >
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: { pageSize: 50 },
+            },
+            sorting: {
+              sortModel: [{ field: 'Investor_Score', sort: 'desc' }],
+            },
+          }}
+          pageSizeOptions={[25, 50, 100]}
+          disableRowSelectionOnClick
+          density="compact"
+          getRowHeight={() => 54}
+          slots={{
+            row: TooltipRow,
+          }}
+          onSortModelChange={handleSortModelChange}
+          onPaginationModelChange={handlePaginationModelChange}
+          onRowClick={handleRowClick}
+        />
+      </Box>
+
+      <StockScoreDrawer
+        open={drawerOpen}
+        stock={selectedStock}
+        onClose={() => setDrawerOpen(false)}
       />
-    </Box>
+    </>
   );
 }
