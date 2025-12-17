@@ -30,7 +30,7 @@ export function useStockData({ initialDate = DEFAULT_DATE, datesLimit = DEFAULT_
     } finally {
       setLoading(false);
     }
-  }, [selectedDate]);
+  }, [selectedDate, datesLimit]);
 
   const selectDate = useCallback(async (date) => {
     setSelectedDate(date);

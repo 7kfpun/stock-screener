@@ -1,6 +1,7 @@
 import { Box, Typography, Select, MenuItem, FormControl, Tooltip } from '@mui/material';
 import { useState, useMemo, useCallback } from 'react';
-import { StockTooltip, formatSignedPercent } from './StockTooltip';
+import { StockTooltip } from './StockTooltip';
+import { formatSignedPercent } from './StockTooltipConfig';
 import { trackHeatmapInteraction } from '../../shared/analytics';
 import { StockScoreDrawer } from './StockScoreDrawer';
 

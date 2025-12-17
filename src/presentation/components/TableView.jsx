@@ -2,7 +2,8 @@ import { DataGrid, GridRow } from '@mui/x-data-grid';
 import { Box, Tooltip, Typography } from '@mui/material';
 import { forwardRef, useState } from 'react';
 import { formatMoney, formatVolume, formatPrice, formatNumber, formatCountry, formatPercent } from '../../shared/formatters';
-import { StockTooltip, formatSignedPercent } from './StockTooltip';
+import { StockTooltip } from './StockTooltip';
+import { formatSignedPercent } from './StockTooltipConfig';
 import { trackTableInteraction } from '../../shared/analytics';
 import { StockScoreDrawer } from './StockScoreDrawer';
 
