@@ -24,7 +24,7 @@ import {
 } from 'recharts';
 import { calculateScoreBreakdown } from '../../domain/stock/scoreCalculator';
 import { tooltipFieldGroups } from './StockTooltipConfig';
-import { formatCountry } from '../../shared/formatters';
+import { CountryFlag } from './CountryFlag';
 
 /**
  * StockDetailPanel - Displays detailed Investor Score breakdown
@@ -227,10 +227,11 @@ export function StockDetailPanel({ stock, onClose, isMobile }) {
       <Divider sx={{ my: 3 }} />
 
       {/* Company Info */}
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
         <Typography variant="caption" color="text.secondary">
-          {stock.Sector || '-'} • {stock.Industry || '-'} • {formatCountry(stock.Country)}
+          {stock.Sector || '-'} • {stock.Industry || '-'}
         </Typography>
+        <CountryFlag country={stock.Country} width={16} height={12} />
       </Box>
 
       {/* All Metric Sections */}
