@@ -1,9 +1,10 @@
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography } from '@mui/material';
 import { useState, useEffect, useMemo } from 'react';
-import { formatMoney, formatVolume, formatPrice, formatNumber, formatCountry, formatPercent } from '../../shared/formatters';
+import { formatMoney, formatVolume, formatPrice, formatNumber, formatPercent } from '../../shared/formatters';
 import { formatSignedPercent } from './StockTooltipConfig';
 import { trackTableInteraction } from '../../shared/analytics';
+import { CountryFlag } from './CountryFlag';
 
 const COLORS = {
   success: '#00d4aa',
@@ -44,7 +45,6 @@ export default function TableView({ data, onStockSelect, selectedTicker }) {
         const name = params.row.Company || '';
         const sector = params.row.Sector || '-';
         const industry = params.row.Industry || '-';
-        const flag = formatCountry(params.row.Country);
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, justifyContent: 'center', height: '100%' }}>
             <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>{name} ({ticker})</Typography>
@@ -52,7 +52,9 @@ export default function TableView({ data, onStockSelect, selectedTicker }) {
               <Box component='span'>{sector}</Box>
               <Box component='span' sx={{ mx: 0.5 }}>{'•'}</Box>
               <Box component='span'>{industry}</Box>
-              <Box component='span' sx={{ ml: 0.75 }}>* {flag}</Box>
+              <Box component='span' sx={{ ml: 0.75, display: 'inline-flex', alignItems: 'center' }}>
+                <CountryFlag country={params.row.Country} width={16} height={12} />
+              </Box>
             </Typography>
           </Box>
         );
