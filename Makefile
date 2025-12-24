@@ -1,16 +1,23 @@
-.PHONY: serve dev build preview install help clean lint format check
+.PHONY: serve dev build preview install help clean lint format check test-scripts run-screener install-scripts
 
 help:
 	@echo "Stock Screener (React + Vite) - Available commands:"
-	@echo "  make install  - Install npm dependencies"
-	@echo "  make dev      - Start development server (alias: make serve)"
-	@echo "  make serve    - Start development server on port 8000"
-	@echo "  make build    - Build for production"
-	@echo "  make preview  - Preview production build"
-	@echo "  make lint     - Lint JavaScript/JSX files"
-	@echo "  make format   - Format code (requires prettier)"
-	@echo "  make check    - Check for common issues"
-	@echo "  make clean    - Remove temporary files and build artifacts"
+	@echo ""
+	@echo "Frontend:"
+	@echo "  make install        - Install npm dependencies"
+	@echo "  make dev            - Start development server (alias: make serve)"
+	@echo "  make serve          - Start development server on port 8000"
+	@echo "  make build          - Build for production"
+	@echo "  make preview        - Preview production build"
+	@echo "  make lint           - Lint JavaScript/JSX files"
+	@echo "  make format         - Format code (requires prettier)"
+	@echo "  make check          - Check for common issues"
+	@echo "  make clean          - Remove temporary files and build artifacts"
+	@echo ""
+	@echo "Python Scripts:"
+	@echo "  make install-scripts - Install Python dependencies"
+	@echo "  make test-scripts    - Run Python tests"
+	@echo "  make run-screener    - Run stock screener and save data"
 
 install:
 	@echo "Installing npm dependencies..."
@@ -63,4 +70,23 @@ clean:
 	@find . -name ".DS_Store" -type f -delete
 	@rm -rf dist
 	@rm -rf node_modules/.vite
+	@find scripts -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find scripts -type f -name "*.pyc" -delete 2>/dev/null || true
+	@rm -rf scripts/.pytest_cache 2>/dev/null || true
 	@echo "Clean complete!"
+
+install-scripts:
+	@echo "Installing Python dependencies..."
+	@pip install -r scripts/requirements.txt
+
+test-scripts:
+	@echo "Running Python tests..."
+	@cd scripts && pytest test_fin.py -v
+
+run-screener:
+	@echo "Running stock screener..."
+	@TODAY=$$(date -u +%Y-%m-%d); \
+	python3 scripts/fin.py > public/data/$$TODAY.csv && \
+	cp public/data/$$TODAY.csv public/data/latest.csv && \
+	(grep -q "^$$TODAY$$" public/data/dates.csv || echo "$$TODAY" >> public/data/dates.csv) && \
+	echo "✓ Stock data saved to public/data/$$TODAY.csv and public/data/latest.csv"
