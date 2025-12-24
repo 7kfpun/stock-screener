@@ -45,5 +45,9 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add public/data/*.csv
-          git commit -m "data: update stock data $(date -u +%Y-%m-%d)" || exit 0
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "data: update stock data $(date -u +%Y-%m-%d)"
+            git push
+          fi
