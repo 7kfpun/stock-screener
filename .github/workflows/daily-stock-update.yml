@@ -2,8 +2,9 @@ name: Daily Stock Data Update
 
 on:
   schedule:
-    # Runs at 6am HKT (10pm UTC previous day)
-    - cron: '0 22 * * *'
+    # Runs at 10pm UTC = ~5-6pm ET (after NYSE close at 4pm ET)
+    # Monday-Friday UTC (handles Friday ET even when it's Saturday HKT)
+    - cron: '0 22 * * 1-5'
   workflow_dispatch: # Allow manual trigger
 
 permissions:
@@ -26,31 +27,48 @@ jobs:
         run: |
           pip install -r scripts/requirements.txt
 
-      - name: Run stock screener
+      - name: Check if market is open
+        id: market_check
         run: |
-          TODAY=$(date -u +%Y-%m-%d)
+          # Use Python script with accurate NYSE calendar (includes weekends and all holidays)
+          if python scripts/is_market_open.py; then
+            echo "skip=false" >> $GITHUB_OUTPUT
+          else
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run stock screener
+        if: steps.market_check.outputs.skip != 'true'
+        run: |
+          # Use Eastern Time (NYSE timezone) for consistent date handling
+          TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
+          echo "Fetching data for NYSE trading day: $TODAY ET"
           python scripts/fin.py > public/data/${TODAY}.csv
 
       - name: Update latest.csv
+        if: steps.market_check.outputs.skip != 'true'
         run: |
-          TODAY=$(date -u +%Y-%m-%d)
+          TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
           cp public/data/${TODAY}.csv public/data/latest.csv
 
       - name: Update dates.csv
+        if: steps.market_check.outputs.skip != 'true'
         run: |
-          TODAY=$(date -u +%Y-%m-%d)
+          TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
           if ! grep -q "^${TODAY}$" public/data/dates.csv; then
             echo "${TODAY}" >> public/data/dates.csv
           fi
 
       - name: Commit and push changes
+        if: steps.market_check.outputs.skip != 'true'
         run: |
+          TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add public/data/*.csv
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "data: update stock data $(date -u +%Y-%m-%d)"
+            git commit -m "data: update stock data $TODAY"
             git push
           fi
