@@ -21,14 +21,30 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Node dependencies
         run: npm ci
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r scripts/requirements.txt
+          pip install pytest
 
       - name: Run linter
         run: npm run lint
 
-      - name: Run tests
+      - name: Run JavaScript tests
         run: npm test -- --run
+
+      - name: Run Python tests
+        run: |
+          cd scripts
+          python -m pytest -v
 
       - name: Build
         run: npm run build
