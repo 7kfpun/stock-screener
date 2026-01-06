@@ -7,7 +7,8 @@ from finvizfinance.screener.financial import Financial
 from finvizfinance.screener.overview import Overview
 from finvizfinance.screener.valuation import Valuation
 from finvizfinance.screener.technical import Technical
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # Suppress warnings and logs from finvizfinance
 warnings.filterwarnings("ignore")
@@ -169,8 +170,9 @@ try:
         / 100
     )
 
-    # Run Day Stamp
-    all_table["Run_Day"] = date.today().isoformat()
+    # Run Day Stamp (use NYSE/Eastern timezone for consistency)
+    eastern = ZoneInfo('America/New_York')
+    all_table["Run_Day"] = datetime.now(eastern).date().isoformat()
 
     # Create an Investor Score column for better sorting
     # First, let's handle NaN values in relevant columns
