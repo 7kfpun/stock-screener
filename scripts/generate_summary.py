@@ -19,6 +19,10 @@ def main():
         print("Error: ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable not set", file=sys.stderr)
         sys.exit(1)
 
+    # Extract date from CSV filename (e.g., "public/data/2026-01-07.csv" -> "2026-01-07")
+    csv_basename = os.path.basename(csv_file)
+    file_date = csv_basename.replace('.csv', '')
+
     # Read first 5 tickers from CSV
     tickers = []
     try:
@@ -84,7 +88,7 @@ Return ONLY a JSON array with this exact format (no other text):
 
         # Build final summary
         summary = {
-            'date': datetime.now().strftime('%Y-%m-%d'),
+            'date': file_date,
             'updated_at': datetime.now().isoformat(),
             'top_stocks': [
                 {
@@ -95,14 +99,20 @@ Return ONLY a JSON array with this exact format (no other text):
             ]
         }
 
-        # Save to public/data/summary.json
-        output_file = 'public/data/summary.json'
-        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        # Save to dated file and latest file
+        os.makedirs('public/data', exist_ok=True)
 
-        with open(output_file, 'w') as f:
+        # Save dated summary
+        dated_file = f'public/data/summary-{file_date}.json'
+        with open(dated_file, 'w') as f:
             json.dump(summary, f, indent=2)
+        print(f"Dated summary saved to {dated_file}")
 
-        print(f"Summary saved to {output_file}")
+        # Save as latest summary
+        latest_file = 'public/data/summary.json'
+        with open(latest_file, 'w') as f:
+            json.dump(summary, f, indent=2)
+        print(f"Latest summary saved to {latest_file}")
 
     except Exception as e:
         print(f"Error calling Claude API or saving file: {e}", file=sys.stderr)

@@ -78,7 +78,7 @@ jobs:
 
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add public/data/*.csv public/data/summary.json
+          git add public/data/*.csv public/data/summary*.json
 
           if git diff --staged --quiet; then
             echo "No changes to commit"
@@ -99,7 +99,8 @@ jobs:
           - Updated \`public/data/${TODAY}.csv\` with latest stock data
           - Updated \`public/data/latest.csv\`
           - Updated \`public/data/dates.csv\`
-          - Updated \`public/data/summary.json\` with top 5 stocks and descriptions
+          - Updated \`public/data/summary-${TODAY}.json\` (dated summary)
+          - Updated \`public/data/summary.json\` (latest summary)
 
           ## Automation
           This PR will be automatically reviewed by claude-code-action, which will:
