@@ -41,11 +41,14 @@ jobs:
                - No unexpected files were modified
                - dates.csv was properly updated
                - latest.csv matches the dated CSV file
+               - Summary JSON files are properly updated
 
             2. **Generate stock summaries:**
                - Read the dated CSV file to get the first 5 tickers
+               - Use web search to find current, accurate information about each company
                - For each ticker, provide a concise 1-sentence description (max 15 words)
                - Focus on what makes each company notable or their primary business
+               - Include any recent significant news if relevant
                - Format as a bulleted list with ticker symbols
 
             3. **Post your review:**
@@ -67,6 +70,8 @@ jobs:
             - **TICKER**: Brief description
             ...
             ```
+          claude_args: |
+            --allowedTools "Read,WebSearch,Bash(gh pr:*)"
 
       - name: Wait for checks
         if: success()
