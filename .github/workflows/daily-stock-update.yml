@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   update-stock-data:
@@ -59,16 +60,46 @@ jobs:
             echo "${TODAY}" >> public/data/dates.csv
           fi
 
-      - name: Commit and push changes
+      - name: Create Pull Request
         if: steps.market_check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
+          BRANCH_NAME="stock-data-update-${TODAY}"
+
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add public/data/*.csv
+
           if git diff --staged --quiet; then
             echo "No changes to commit"
-          else
-            git commit -m "data: update stock data $TODAY"
-            git push
+            exit 0
           fi
+
+          # Create and switch to new branch
+          git checkout -b ${BRANCH_NAME}
+          git commit -m "data: update stock data ${TODAY}"
+          git push -u origin ${BRANCH_NAME}
+
+          # Create PR using GitHub CLI
+          gh pr create \
+            --title "Daily Stock Data Update - ${TODAY}" \
+            --body "Automated daily stock data update for ${TODAY}.
+
+          ## Changes
+          - Updated \`public/data/${TODAY}.csv\` with latest stock data
+          - Updated \`public/data/latest.csv\`
+          - Updated \`public/data/dates.csv\`
+
+          ## Automation
+          This PR will be automatically reviewed by claude-code-action, which will:
+          - Verify all changes are correct
+          - Generate stock summaries and save to \`public/data/summary/\`
+          - Commit summary files to this PR
+          - Post a comment with the top 5 stocks
+          - Auto-merge if all checks pass" \
+            --base main \
+            --head ${BRANCH_NAME} \
+            --label "automated" \
+            --label "data-update"

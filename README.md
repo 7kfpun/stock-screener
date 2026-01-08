@@ -83,7 +83,10 @@ CSV assets live under `public/data`:
 - **Pre-commit**: Husky + lint-staged for automatic linting
 - **Testing**: Vitest + React Testing Library
 - **Guides**: See `AGENTS.md` for contributor workflow expectations and `CLAUDE.md` for assistant-specific guardrails.
-- **CI/CD**: `PR Checks` (`.github/workflows/pr-checks.yml`) runs lint, tests, and build on every PR and push to `main`.
+- **CI/CD**:
+  - `PR Checks` (`.github/workflows/pr-checks.yml`) runs lint, tests, and build on every PR and push to `main`.
+  - `Daily Stock Data Update` (`.github/workflows/daily-stock-update.yml`) automatically fetches latest stock data daily at 10pm UTC (after NYSE close), creates a PR with the updates.
+  - `Claude PR Review` (`.github/workflows/claude-pr-review.yml`) uses claude-code-action to analyze automated PRs and auto-merge if all checks pass.
 
 ### Git Hooks
 Pre-commit hooks automatically:
@@ -100,6 +103,11 @@ Pre-commit hooks automatically:
 ## Deployment
 
 Automatically deployed to GitHub Pages on push to `main` branch.
+
+### Required Secrets
+
+For automated PR reviews to work, add the following secret to your repository:
+- `CLAUDE_CODE_OAUTH_TOKEN`: OAuth token for claude-code-action to analyze PRs, generate stock summaries, and approve/merge.
 
 ## Tech Stack
 

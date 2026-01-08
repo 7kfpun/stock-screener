@@ -1,0 +1,145 @@
+name: Claude PR Review and Auto-Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: read
+
+jobs:
+  claude-review:
+    # Only run on PRs with the automated label
+    if: contains(github.event.pull_request.labels.*.name, 'automated')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Review this automated daily stock data update PR and generate stock summaries.
+
+            **Your tasks:**
+
+            1. **Verify the changes:**
+               - Only CSV files in `public/data/` should be modified
+               - Data format is consistent with previous updates
+               - No unexpected files were modified
+               - dates.csv was properly updated
+               - latest.csv matches the dated CSV file
+
+            2. **Generate and save stock summaries:**
+               - Read the dated CSV file to get the first 5 tickers
+               - Use web search to research each company thoroughly
+
+               For each ticker, provide:
+               - Company description (what they do, their market position)
+               - Latest news (recent significant developments, earnings, announcements)
+               - Why selected (analyze the CSV metrics - P/E, ROE, growth rates, etc. - and explain what makes this stock stand out)
+
+               - Extract the date from the CSV filename (e.g., "2026-01-07.csv" -> "2026-01-07")
+               - Create a JSON file with this structure (NO duplicate CSV data - only NEW insights):
+                 {
+                   "date": "YYYY-MM-DD",
+                   "updated_at": "ISO timestamp",
+                   "top_stocks": [
+                     {
+                       "ticker": "TICKER",
+                       "description": "What the company does and their market position",
+                       "latest_news": "Recent significant news or developments",
+                       "why_selected": "Analysis of key metrics from CSV (P/E, ROE, growth, etc.) explaining why this stock ranks highly"
+                     }
+                   ]
+                 }
+
+               - Save to: public/data/summary/{date}.json (dated file)
+               - Save to: public/data/summary/latest.json (latest copy)
+               - Commit both files to this PR branch
+
+            3. **Post your review:**
+               - Add a comment with:
+                 - ✅ Verification summary (what you checked)
+                 - 📊 Top 5 Stocks section with descriptions
+                 - 💾 Confirmation that summary files were saved
+               - If everything looks good: Approve the PR
+               - If there are issues: Request changes and explain what's wrong
+
+            **Example comment format:**
+            ```
+            ✅ **Verification Complete**
+            - CSV files updated correctly
+            - Data format consistent
+            - No unexpected changes
+
+            📊 **Top 5 Stocks Analysis**
+
+            **TICKER** - Company Name
+            - **What they do**: Brief description of business
+            - **Latest news**: Recent significant developments
+            - **Why it stands out**: Analysis of key metrics (e.g., "Strong ROE of 30% with consistent growth")
+
+            **TICKER** - Company Name
+            - **What they do**: Brief description of business
+            - **Latest news**: Recent significant developments
+            - **Why it stands out**: Analysis of key metrics
+
+            ...
+
+            💾 **Summary Files**
+            - Saved to public/data/summary/YYYY-MM-DD.json
+            - Updated public/data/summary/latest.json
+            ```
+          claude_args: |
+            --allowedTools "Read,Write,WebSearch,Bash(gh pr:*),Bash(git:*)"
+
+      - name: Wait for checks
+        if: success()
+        run: |
+          echo "Waiting for all checks to complete..."
+          sleep 30
+
+          # Check if PR checks workflow passed
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Get the latest status of checks
+          CHECKS_STATUS=$(gh pr checks $PR_NUMBER --json state -q '.[].state' || echo "")
+
+          if echo "$CHECKS_STATUS" | grep -q "FAILURE\|ERROR"; then
+            echo "Some checks failed. Will not auto-merge."
+            exit 1
+          fi
+
+          echo "All checks passed or pending. Proceeding with merge."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge PR
+        if: success()
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Check if Claude approved the PR
+          APPROVALS=$(gh pr view $PR_NUMBER --json reviews -q '[.reviews[] | select(.state == "APPROVED")] | length')
+
+          if [ "$APPROVALS" -gt 0 ]; then
+            echo "PR has been approved. Merging..."
+            gh pr merge $PR_NUMBER --squash --auto --delete-branch
+          else
+            echo "PR not approved yet. Skipping auto-merge."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
