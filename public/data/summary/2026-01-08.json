@@ -1,0 +1,36 @@
+{
+  "date": "2026-01-08",
+  "updated_at": "2026-01-08T00:00:00Z",
+  "top_stocks": [
+    {
+      "ticker": "FUTU",
+      "description": "Futu Holdings Ltd is a Hong Kong-based fintech company offering a digital wealth management and trading platform. The company operates a brokerage platform serving primarily retail investors in Hong Kong and other Asian markets, with expansion into crypto trading.",
+      "latest_news": "Q3 2025 showed exceptional growth: revenue up 86% YoY to HKD 6.4 billion, funded accounts grew 43% YoY to 3.13 million. Net income jumped 143% YoY with margin expanding to 50.1%. Crypto trading momentum continues with triple-digit sequential growth in client crypto AUM and Solana expansion.",
+      "why_selected": "FUTU scores 100 on Investor Score with strong fundamentals: ROE of 30.2% indicates excellent profitability, 50%+ net profit margin shows operational efficiency. P/E of 20.12 is reasonable for a high-growth fintech company. Strong cash position (current ratio 1.16) with minimal debt (LT Debt/Equity 0.01) provides financial stability. Growth rates support premium valuation."
+    },
+    {
+      "ticker": "EXEL",
+      "description": "Exelixis Inc is a California-based biopharmaceutical company focused on developing and commercializing oncology and immuno-oncology treatments. Key products include cancer therapies used globally in clinical practice.",
+      "latest_news": "Q3 2025 earnings beat consensus with $0.78 EPS vs $0.68 expected. Revenue of $598M exceeded estimates of $590M with 10.8% YoY growth. Company presenting at J.P. Morgan 2026 Healthcare Conference on January 12. Recent collaboration on STELLAR-316 trial and advancing LITESPARK-033 kidney cancer combination therapy with Merck.",
+      "why_selected": "EXEL ranks 100 on Investor Score with balanced metrics: ROE of 30.6% and ROA of 23.4% show strong asset efficiency. P/E of 18.59 is attractive for biotech. Strong liquidity (current ratio 3.75) provides runway for R&D investments. Consistent earnings growth with positive forward guidance supports valuation multiple."
+    },
+    {
+      "ticker": "KGC",
+      "description": "Kinross Gold Corp is a Canadian precious metals company engaged in gold mining and development. Operating mines in multiple countries including Canada, providing exposure to gold commodity prices with diversified production.",
+      "latest_news": "Q3 2025 delivered record free cash flow of ~$700M. Company achieved net cash position and increased 2025 buyback to $600M (+20%) and dividend to $0.14 annualized (+17%). Production reached 504,000 gold equivalent ounces with operating margins exceeding $2,300 per ounce. Project updates scheduled for January 15, 2026.",
+      "why_selected": "KGC achieves 100 on Investor Score with defensive gold exposure: ROE of 24.1% and ROA of 15.4% represent solid performance in commodity business. P/E of 21.56 reflects market valuation of gold producers. Strong cash generation (free cash flow $700M) supports 17% dividend increase. High RSI of 68 suggests momentum. Dividend yield and capital return programs appeal to income investors."
+    },
+    {
+      "ticker": "MU",
+      "description": "Micron Technology Inc is a US-based semiconductor company specializing in memory chips including DRAM and advanced HBM (High-Bandwidth Memory). Major supplier to AI infrastructure providers and data centers worldwide.",
+      "latest_news": "Stock up 247% in past year and jumped 10.5% on January 2, 2026. Company reported record revenue and margins driven by AI demand. 2026 HBM capacity is fully booked with volume and pricing locked in with customers. Non-GAAP earnings guidance for Q1 FY2026 at $8.42 per share (+440% YoY). Capital expenditure lifted to $20 billion.",
+      "why_selected": "MU achieves 100 on Investor Score capturing AI semiconductor boom: ROE of 22.6% and ROA of 15.1% show capital efficiency. P/E of 31.09 reflects growth premium justified by 440% earnings forecast. HBM capacity fully booked through 2026 eliminates demand uncertainty. $20B capex commitment demonstrates confidence in sustained demand cycle."
+    },
+    {
+      "ticker": "LLY",
+      "description": "Eli Lilly & Co is a US-based multinational pharmaceutical company with a diverse portfolio of drugs across multiple therapeutic areas including oncology, immunology, and metabolism. Leading player in obesity and Alzheimer's treatments.",
+      "latest_news": "Stock up 4.92% on January 7, 2026 amid promising Alzheimer's drug trial results. Announced partnership with Nimbus Therapeutics for oral obesity drug development ($55M upfront + $1.3B milestones). In advanced talks to acquire Ventyx Biosciences for $1B+. 2026 revenue forecast: $74.4B (+25% YoY), EPS predicted at $29.76 (+45%).",
+      "why_selected": "LLY scores 100 on Investor Score as a mega-cap pharma leader: ROE of 96.8% is exceptional, ROA of 19.3% shows strong asset deployment. Despite higher P/E of 53.67, justified by high-growth therapeutics pipeline and 25% revenue growth forecast. Gross margin of 83% and operating margin of 44% demonstrate pricing power. Multiple growth drivers in obesity and Alzheimer's markets."
+    }
+  ]
+}
