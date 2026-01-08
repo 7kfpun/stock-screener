@@ -93,13 +93,14 @@ jobs:
                    ]
                  }
 
-               - Save to: public/data/summary/{date}.json (dated file)
+               - Save to: public/data/summary/{date}.json (where {date} is the date from the CSV filename, e.g., "2026-01-08")
                - Save to: public/data/summary/latest.json (latest copy)
-               - Create the summary directory if it doesn't exist: mkdir -p public/data/summary
-               - Commit and push both files to the current branch:
-                 * git add public/data/summary/{date}.json public/data/summary/latest.json
-                 * git commit -m "data: add stock summaries for {date}"
-                 * git push
+               - IMPORTANT: After saving the files, you MUST commit and push them:
+                 * First ensure directory exists: mkdir -p public/data/summary
+                 * Stage the files: git add public/data/summary/
+                 * Commit with message: git commit -m "data: add stock summaries for YYYY-MM-DD" (use the actual date)
+                 * Push to remote: git push
+                 * Verify the commit succeeded with: git log -1 --oneline
 
             3. **Post your review:**
                - Add a comment with:
