@@ -60,14 +60,6 @@ jobs:
             echo "${TODAY}" >> public/data/dates.csv
           fi
 
-      - name: Generate ticker summary
-        if: steps.market_check.outputs.skip != 'true'
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
-          python scripts/generate_ticker_summary.py public/data/${TODAY}.csv > /tmp/ticker_summary.txt || echo "**Top 5 Stocks**: Summary generation failed" > /tmp/ticker_summary.txt
-
       - name: Create Pull Request
         if: steps.market_check.outputs.skip != 'true'
         env:
@@ -90,10 +82,7 @@ jobs:
           git commit -m "data: update stock data ${TODAY}"
           git push -u origin ${BRANCH_NAME}
 
-          # Read ticker summary
-          TICKER_SUMMARY=$(cat /tmp/ticker_summary.txt)
-
-          # Create PR using GitHub CLI with ticker summary
+          # Create PR using GitHub CLI
           gh pr create \
             --title "Daily Stock Data Update - ${TODAY}" \
             --body "Automated daily stock data update for ${TODAY}.
@@ -103,11 +92,11 @@ jobs:
           - Updated \`public/data/latest.csv\`
           - Updated \`public/data/dates.csv\`
 
-          ## Top 5 Stocks
-          ${TICKER_SUMMARY}
-
           ## Automation
-          This PR will be automatically analyzed by claude-code-action and merged if all checks pass." \
+          This PR will be automatically reviewed by claude-code-action, which will:
+          - Verify all changes are correct
+          - Provide a summary of the top 5 stocks
+          - Auto-merge if all checks pass" \
             --base main \
             --head ${BRANCH_NAME} \
             --label "automated" \

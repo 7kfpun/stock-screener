@@ -107,7 +107,7 @@ Automatically deployed to GitHub Pages on push to `main` branch.
 ### Required Secrets
 
 For automated PR reviews to work, add the following secret to your repository:
-- `ANTHROPIC_API_KEY`: Your Anthropic API key for claude-code-action to analyze and approve PRs.
+- `CLAUDE_CODE_OAUTH_TOKEN`: OAuth token for claude-code-action to analyze PRs, generate stock summaries, and approve/merge.
 
 ## Tech Stack
 

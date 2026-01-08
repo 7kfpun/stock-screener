@@ -29,26 +29,44 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Review this automated daily stock data update PR.
+            Review this automated daily stock data update PR and provide a summary of the top 5 stocks.
 
-            **Your task:**
-            1. Verify that the changes only include updates to CSV files in `public/data/`
-            2. Check that the data format is consistent with previous updates
-            3. Ensure no unexpected files were modified
-            4. Verify dates.csv was properly updated
-            5. Check that latest.csv matches the dated CSV file
+            **Your tasks:**
 
-            **If everything looks good:**
-            - Approve the PR
-            - Add a comment summarizing what was verified
-            - The PR will be auto-merged after your approval
+            1. **Verify the changes:**
+               - Only CSV files in `public/data/` should be modified
+               - Data format is consistent with previous updates
+               - No unexpected files were modified
+               - dates.csv was properly updated
+               - latest.csv matches the dated CSV file
 
-            **If there are issues:**
-            - Request changes
-            - Explain what's wrong
-            - Do NOT merge
+            2. **Generate stock summaries:**
+               - Read the dated CSV file to get the first 5 tickers
+               - For each ticker, provide a concise 1-sentence description (max 15 words)
+               - Focus on what makes each company notable or their primary business
+               - Format as a bulleted list with ticker symbols
+
+            3. **Post your review:**
+               - Add a comment with:
+                 - ✅ Verification summary (what you checked)
+                 - 📊 Top 5 Stocks section with descriptions
+               - If everything looks good: Approve the PR
+               - If there are issues: Request changes and explain what's wrong
+
+            **Example comment format:**
+            ```
+            ✅ **Verification Complete**
+            - CSV files updated correctly
+            - Data format consistent
+            - No unexpected changes
+
+            📊 **Top 5 Stocks**
+            - **TICKER**: Brief description
+            - **TICKER**: Brief description
+            ...
+            ```
 
       - name: Wait for checks
         if: success()
