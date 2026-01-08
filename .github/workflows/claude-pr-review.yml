@@ -61,7 +61,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          model: claude-haiku-4-5
           prompt: |
             Review this automated daily stock data update PR and generate stock summaries.
 
@@ -141,6 +140,7 @@ jobs:
             - Updated public/data/summary/latest.json
             ```
           claude_args: |
+            --model claude-haiku-4-5
             --allowedTools "Read,Write,WebSearch,Bash(gh pr:*),Bash(git:*)"
 
       - name: Wait for checks
