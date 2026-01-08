@@ -23,6 +23,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Initial checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Get PR details
         id: pr-details
         run: |
@@ -45,7 +50,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout repository
+      - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.pr-details.outputs.pr_ref }}
