@@ -1,0 +1,89 @@
+name: Claude PR Review and Auto-Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: read
+
+jobs:
+  claude-review:
+    # Only run on PRs with the automated label
+    if: contains(github.event.pull_request.labels.*.name, 'automated')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review this automated daily stock data update PR.
+
+            **Your task:**
+            1. Verify that the changes only include updates to CSV files in `public/data/`
+            2. Check that the data format is consistent with previous updates
+            3. Ensure no unexpected files were modified
+            4. Verify dates.csv was properly updated
+            5. Check that latest.csv matches the dated CSV file
+
+            **If everything looks good:**
+            - Approve the PR
+            - Add a comment summarizing what was verified
+            - The PR will be auto-merged after your approval
+
+            **If there are issues:**
+            - Request changes
+            - Explain what's wrong
+            - Do NOT merge
+
+      - name: Wait for checks
+        if: success()
+        run: |
+          echo "Waiting for all checks to complete..."
+          sleep 30
+
+          # Check if PR checks workflow passed
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Get the latest status of checks
+          CHECKS_STATUS=$(gh pr checks $PR_NUMBER --json state -q '.[].state' || echo "")
+
+          if echo "$CHECKS_STATUS" | grep -q "FAILURE\|ERROR"; then
+            echo "Some checks failed. Will not auto-merge."
+            exit 1
+          fi
+
+          echo "All checks passed or pending. Proceeding with merge."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge PR
+        if: success()
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Check if Claude approved the PR
+          APPROVALS=$(gh pr view $PR_NUMBER --json reviews -q '[.reviews[] | select(.state == "APPROVED")] | length')
+
+          if [ "$APPROVALS" -gt 0 ]; then
+            echo "PR has been approved. Merging..."
+            gh pr merge $PR_NUMBER --squash --auto --delete-branch
+          else
+            echo "PR not approved yet. Skipping auto-merge."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
