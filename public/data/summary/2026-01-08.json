@@ -1,0 +1,36 @@
+{
+  "date": "2026-01-08",
+  "updated_at": "2026-01-08T00:00:00Z",
+  "top_stocks": [
+    {
+      "ticker": "FUTU",
+      "description": "Futu Holdings operates Moomoo, a leading digital brokerage platform in Hong Kong and Asia, offering 24/7 trading capabilities for U.S. exchange-listed securities. The company maintains exceptional profitability with a pre-tax profit margin of 49.9% and a market cap of $16.77 billion.",
+      "latest_news": "Major expansion announced with 24-hour trading launch through partnership with OTC Markets Group's MOON ATS. Stock surged 9% in early January 2026, reaching $178.46. GAM Holding AG increased holdings by 64.4%. Analysts maintain 'Strong Buy' rating with $208.6 price target (21% upside).",
+      "why_selected": "Outstanding profitability metrics with ROE of 30.24% and ROIC of 26.63%. Extremely high gross margin of 94.46% and operating margin of 67.1% demonstrate strong competitive advantage. Forward P/E of 16.23 with PEG ratio of 0.5 indicates undervaluation relative to growth. Strong momentum with 95.25% EPS growth this year and consistent sales growth of 32.76% over 5 years. Low debt-to-equity of 0.37 provides financial stability."
+    },
+    {
+      "ticker": "EXEL",
+      "description": "Exelixis is a leading oncology-focused biopharmaceutical company specializing in the discovery, development, and commercialization of cancer treatments. Key products include CABOMETYX for advanced renal cell carcinoma and COMETRIQ for medullary thyroid cancer, with a market cap of $12.38 billion.",
+      "latest_news": "Scheduled to present at J.P. Morgan 2026 Healthcare Conference on January 12. Bank of America downgraded to Underperform on January 5. CEO Mike Morrissey expressed optimism about Zanzalintinib's potential approval in kidney cancer following upcoming Stellar-304 trial results, though competitive pressures persist.",
+      "why_selected": "Exceptional ROE of 30.56% and ROIC of 29.01% among biotechnology companies. Outstanding gross margin of 96.63% reflects strong pricing power. Very strong liquidity with current ratio of 3.75 and quick ratio of 3.68. Attractive valuation with P/E of 19.45 and forward P/E of 14.06. Strong earnings growth of 65.1% this year with 13.08% expected next year. Low debt (Debt/Eq 0.08) provides financial flexibility for R&D."
+    },
+    {
+      "ticker": "MU",
+      "description": "Micron Technology is a global leader in semiconductor memory and storage solutions, manufacturing DRAM, NAND, and high-bandwidth memory (HBM) chips essential for AI, data centers, and computing. Market cap of $382.17 billion positions it as a major semiconductor player.",
+      "latest_news": "Major breakthrough: 2026 HBM capacity fully booked due to AI-driven demand. New York megafab groundbreaking set for January 16, 2026 - largest semiconductor facility in U.S. Stock surged 10% on first trading day of 2026, up 234% over 12 months. Q1 2026 revenue hit $13.6 billion (up 21% QoQ) with gross margin expanding to 57%. Piper Sandler raised price target to $400.",
+      "why_selected": "Dominant position in AI memory supercycle with 2026 HBM capacity sold out. Strong profitability with ROE of 22.55% and ROA of 15.13%. Impressive gross margin expansion to 45.56% with operating margin of 32.95%. Strong earnings momentum: EPS growth of 280.61% this year, 28.82% expected next year. Forward P/E of 8.35 with PEG of 0.12 indicates significant undervaluation. Price 22.74% above SMA20, 35.99% above SMA50 showing strong momentum."
+    },
+    {
+      "ticker": "NVDA",
+      "description": "NVIDIA is the undisputed leader in AI computing and graphics processing units (GPUs), dominating the data center GPU market with chips powering artificial intelligence, machine learning, and high-performance computing worldwide. Market cap of $4.6 trillion makes it one of the world's most valuable companies.",
+      "latest_news": "Trump approved Nvidia to sell advanced H200 chips to approved Chinese customers, potentially generating $40 billion in 2026 revenue. Q4 FY2026 revenue forecast: $65 billion. FY2027 revenue expected to reach $320 billion (up from $213 billion in FY2026). Stock rose 39% in 2025. Analysts project $250-$300 price targets for 2026, though competition from custom AI chips increases.",
+      "why_selected": "Exceptional profitability: ROE of 107.36%, ROA of 77.15%, ROIC of 77.27% - best-in-class margins. Extraordinary gross margin of 70.05%, operating margin of 58.84%, and profit margin of 53.01%. Strong revenue growth acceleration: 91.83% past 5Y, 48.55% expected next 5Y. Forward P/E of 24.69 with PEG of 0.51 shows growth at reasonable price. EPS growth of 56.44% this year, 63.76% expected next year. Dominant market position in AI chip ecosystem."
+    },
+    {
+      "ticker": "KGC",
+      "description": "Kinross Gold is a senior gold mining company operating mines across the Americas, West Africa, and Russia. With disciplined capital allocation and a focus on high-quality assets, the company has a market cap of $36.86 billion and provides exposure to gold prices.",
+      "latest_news": "Stock hit all-time high of $30.39 on January 6, 2026 (up 3.45%). Trading near 52-week highs alongside strong gold prices. Five analysts maintain 'Strong Buy' rating. National Bank Financial (Outperform), Desjardins Securities (Buy), and UBS (Buy) reaffirmed positive ratings. New February 2026 options began trading. Recent pullback raises consolidation questions.",
+      "why_selected": "Strong profitability for mining sector: ROE of 24.09%, ROA of 15.37%, ROIC of 19.09%. Solid operating margin of 40.07% and profit margin of 27.3% demonstrate efficient operations. Attractive valuation with P/E of 21.31, forward P/E of 12.38, and PEG of 0.22. Strong earnings momentum: 154.83% growth this year, 42.4% expected next year. Excellent liquidity with current ratio of 2.83. Price 6.74% above SMA20, 14.79% above SMA50 showing uptrend. Low debt relative to equity (0.16) provides financial stability."
+    }
+  ]
+}
