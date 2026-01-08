@@ -11,6 +11,11 @@ permissions:
   contents: write
   pull-requests: write
 
+# IMPORTANT: Repository Settings Required
+# To allow GitHub Actions to create pull requests, you must enable:
+# Settings → Actions → General → Workflow permissions
+# → Check "Allow GitHub Actions to create and approve pull requests"
+
 jobs:
   update-stock-data:
     runs-on: ubuntu-latest
@@ -88,7 +93,7 @@ jobs:
           git push -u origin ${BRANCH_NAME}
 
           # Create PR using GitHub CLI (or update if exists)
-          if ! gh pr create \
+          gh pr create \
             --title "Daily Stock Data Update - ${TODAY}" \
             --body "Automated daily stock data update for ${TODAY}.
 
@@ -107,6 +112,9 @@ jobs:
             --base main \
             --head ${BRANCH_NAME} \
             --label "automated" \
-            --label "data-update"; then
-            echo "PR already exists or failed to create, continuing..."
-          fi
+            --label "data-update" || {
+            echo "::error::Failed to create pull request. Please ensure GitHub Actions has permission to create PRs."
+            echo "::error::Go to: Settings → Actions → General → Workflow permissions"
+            echo "::error::Enable: 'Allow GitHub Actions to create and approve pull requests'"
+            exit 1
+          }
