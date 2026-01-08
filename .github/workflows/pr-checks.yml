@@ -10,6 +10,9 @@ on:
 
 jobs:
   test:
+    # Skip full test suite for automated data-only PRs
+    # They're already validated by the daily-stock-update workflow
+    if: "!contains(github.event.pull_request.labels.*.name, 'automated')"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
