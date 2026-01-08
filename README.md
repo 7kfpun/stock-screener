@@ -109,6 +109,15 @@ Automatically deployed to GitHub Pages on push to `main` branch.
 For automated PR reviews to work, add the following secret to your repository:
 - `CLAUDE_CODE_OAUTH_TOKEN`: OAuth token for claude-code-action to analyze PRs, generate stock summaries, and approve/merge.
 
+### Required Repository Settings
+
+For the automated workflows to function properly, configure these repository settings:
+
+**GitHub Actions Permissions** (Settings → Actions → General → Workflow permissions):
+- Enable: **"Allow GitHub Actions to create and approve pull requests"**
+  - Required for: `Daily Stock Data Update` workflow to automatically create PRs with updated stock data
+  - Without this setting, the workflow will fail with: `GitHub Actions is not permitted to create or approve pull requests`
+
 ## Tech Stack
 
 - **Framework**: React 18 + Vite 5
