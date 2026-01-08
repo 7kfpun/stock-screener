@@ -60,14 +60,6 @@ jobs:
             echo "${TODAY}" >> public/data/dates.csv
           fi
 
-      - name: Generate stock summary
-        if: steps.market_check.outputs.skip != 'true'
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-        run: |
-          TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
-          python scripts/generate_summary.py public/data/${TODAY}.csv || echo "Summary generation failed"
-
       - name: Create Pull Request
         if: steps.market_check.outputs.skip != 'true'
         env:
@@ -78,7 +70,7 @@ jobs:
 
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add public/data/*.csv public/data/summary/
+          git add public/data/*.csv
 
           if git diff --staged --quiet; then
             echo "No changes to commit"
@@ -99,13 +91,13 @@ jobs:
           - Updated \`public/data/${TODAY}.csv\` with latest stock data
           - Updated \`public/data/latest.csv\`
           - Updated \`public/data/dates.csv\`
-          - Updated \`public/data/summary/${TODAY}.json\` (dated summary)
-          - Updated \`public/data/summary/latest.json\` (latest summary)
 
           ## Automation
           This PR will be automatically reviewed by claude-code-action, which will:
           - Verify all changes are correct
-          - Provide a summary of the top 5 stocks in the PR comments
+          - Generate stock summaries and save to \`public/data/summary/\`
+          - Commit summary files to this PR
+          - Post a comment with the top 5 stocks
           - Auto-merge if all checks pass" \
             --base main \
             --head ${BRANCH_NAME} \
