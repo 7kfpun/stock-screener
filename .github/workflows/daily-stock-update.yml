@@ -69,7 +69,7 @@ jobs:
       - name: Create Pull Request
         if: steps.market_check.outputs.skip != 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
         run: |
           TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
           # Add run number for uniqueness to avoid branch conflicts on reruns
