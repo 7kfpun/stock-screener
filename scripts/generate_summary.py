@@ -100,16 +100,16 @@ Return ONLY a JSON array with this exact format (no other text):
         }
 
         # Save to dated file and latest file
-        os.makedirs('public/data', exist_ok=True)
+        os.makedirs('public/data/summary', exist_ok=True)
 
         # Save dated summary
-        dated_file = f'public/data/summary-{file_date}.json'
+        dated_file = f'public/data/summary/{file_date}.json'
         with open(dated_file, 'w') as f:
             json.dump(summary, f, indent=2)
         print(f"Dated summary saved to {dated_file}")
 
         # Save as latest summary
-        latest_file = 'public/data/summary.json'
+        latest_file = 'public/data/summary/latest.json'
         with open(latest_file, 'w') as f:
             json.dump(summary, f, indent=2)
         print(f"Latest summary saved to {latest_file}")
