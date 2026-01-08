@@ -66,7 +66,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
-          BRANCH_NAME="stock-data-update-${TODAY}"
+          # Add run number for uniqueness to avoid branch conflicts on reruns
+          RUN_NUMBER="${{ github.run_number }}"
+          BRANCH_NAME="stock-data-update-${TODAY}-${RUN_NUMBER}"
 
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -80,10 +82,12 @@ jobs:
           # Create and switch to new branch
           git checkout -b ${BRANCH_NAME}
           git commit -m "data: update stock data ${TODAY}"
+
+          # Push the new branch
           git push -u origin ${BRANCH_NAME}
 
-          # Create PR using GitHub CLI
-          gh pr create \
+          # Create PR using GitHub CLI (or update if exists)
+          if ! gh pr create \
             --title "Daily Stock Data Update - ${TODAY}" \
             --body "Automated daily stock data update for ${TODAY}.
 
@@ -102,4 +106,6 @@ jobs:
             --base main \
             --head ${BRANCH_NAME} \
             --label "automated" \
-            --label "data-update"
+            --label "data-update"; then
+            echo "PR already exists or failed to create, continuing..."
+          fi
