@@ -24,6 +24,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
@@ -68,7 +74,12 @@ jobs:
 
                - Save to: public/data/summary/{date}.json (dated file)
                - Save to: public/data/summary/latest.json (latest copy)
-               - Commit both files to this PR branch
+               - **IMPORTANT**: After creating the files, commit and push them:
+                 ```bash
+                 git add public/data/summary/*.json
+                 git commit -m "Add stock summaries for {date}"
+                 git push origin ${{ github.event.pull_request.head.ref }}
+                 ```
 
             3. **Post your review:**
                - Add a comment with:
@@ -100,8 +111,9 @@ jobs:
             ...
 
             💾 **Summary Files**
-            - Saved to public/data/summary/YYYY-MM-DD.json
-            - Updated public/data/summary/latest.json
+            - ✅ Created public/data/summary/YYYY-MM-DD.json
+            - ✅ Created public/data/summary/latest.json
+            - ✅ Committed and pushed to PR branch
             ```
           claude_args: |
             --allowedTools "Read,Write,WebSearch,Bash(gh pr:*),Bash(git:*)"
