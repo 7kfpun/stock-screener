@@ -44,27 +44,24 @@ jobs:
 
             2. **Generate and save stock summaries:**
                - Read the dated CSV file to get the first 5 tickers
-               - Use web search to find current, accurate information about each company
-               - For each ticker, create a concise 1-sentence description (max 15 words)
-               - Focus on what makes each company notable or their primary business
-               - Include any recent significant news if relevant
+               - Use web search to research each company thoroughly
+
+               For each ticker, provide:
+               - Company description (what they do, their market position)
+               - Latest news (recent significant developments, earnings, announcements)
+               - Why selected (analyze the CSV metrics - P/E, ROE, growth rates, etc. - and explain what makes this stock stand out)
 
                - Extract the date from the CSV filename (e.g., "2026-01-07.csv" -> "2026-01-07")
-               - Create a JSON file with this structure:
+               - Create a JSON file with this structure (NO duplicate CSV data - only NEW insights):
                  {
                    "date": "YYYY-MM-DD",
                    "updated_at": "ISO timestamp",
                    "top_stocks": [
                      {
                        "ticker": "TICKER",
-                       "company": "Company Name",
-                       "sector": "Sector",
-                       "country": "Country",
-                       "pe": "P/E ratio",
-                       "market_cap": "Market cap",
-                       "price": "Price",
-                       "change": "Change",
-                       "description": "Your generated description"
+                       "description": "What the company does and their market position",
+                       "latest_news": "Recent significant news or developments",
+                       "why_selected": "Analysis of key metrics from CSV (P/E, ROE, growth, etc.) explaining why this stock ranks highly"
                      }
                    ]
                  }
@@ -88,9 +85,18 @@ jobs:
             - Data format consistent
             - No unexpected changes
 
-            📊 **Top 5 Stocks**
-            - **TICKER**: Brief description
-            - **TICKER**: Brief description
+            📊 **Top 5 Stocks Analysis**
+
+            **TICKER** - Company Name
+            - **What they do**: Brief description of business
+            - **Latest news**: Recent significant developments
+            - **Why it stands out**: Analysis of key metrics (e.g., "Strong ROE of 30% with consistent growth")
+
+            **TICKER** - Company Name
+            - **What they do**: Brief description of business
+            - **Latest news**: Recent significant developments
+            - **Why it stands out**: Analysis of key metrics
+
             ...
 
             💾 **Summary Files**
