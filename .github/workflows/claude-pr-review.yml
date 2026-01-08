@@ -56,6 +56,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          model: claude-haiku-4-5
           prompt: |
             Review this automated daily stock data update PR and generate stock summaries.
 
@@ -92,9 +93,14 @@ jobs:
                    ]
                  }
 
-               - Save to: public/data/summary/{date}.json (dated file)
+               - Save to: public/data/summary/{date}.json (where {date} is the date from the CSV filename, e.g., "2026-01-08")
                - Save to: public/data/summary/latest.json (latest copy)
-               - Commit both files to this PR branch
+               - IMPORTANT: After saving the files, you MUST commit and push them:
+                 * First ensure directory exists: mkdir -p public/data/summary
+                 * Stage the files: git add public/data/summary/
+                 * Commit with message: git commit -m "data: add stock summaries for YYYY-MM-DD" (use the actual date)
+                 * Push to remote: git push
+                 * Verify the commit succeeded with: git log -1 --oneline
 
             3. **Post your review:**
                - Add a comment with:
