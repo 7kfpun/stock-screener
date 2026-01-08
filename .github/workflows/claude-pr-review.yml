@@ -5,6 +5,8 @@ on:
     types: [opened, synchronize, reopened]
     branches:
       - main
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: write
@@ -14,15 +16,39 @@ permissions:
 
 jobs:
   claude-review:
-    # Only run on PRs with the automated label
-    if: contains(github.event.pull_request.labels.*.name, 'automated')
+    # Run on: automated PRs with label OR manual /claude-review comment
+    if: |
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'automated')) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/claude-review'))
     runs-on: ubuntu-latest
 
     steps:
+      - name: Get PR details
+        id: pr-details
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Direct PR event
+            echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "pr_ref=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+            echo "is_automated=true" >> $GITHUB_OUTPUT
+          else
+            # Comment trigger - get PR details from API
+            PR_NUMBER=${{ github.event.issue.number }}
+            PR_DATA=$(gh pr view $PR_NUMBER --json headRefName,labels)
+            PR_REF=$(echo "$PR_DATA" | jq -r '.headRefName')
+            HAS_AUTOMATED_LABEL=$(echo "$PR_DATA" | jq -r '[.labels[].name] | contains(["automated"])')
+
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "pr_ref=$PR_REF" >> $GITHUB_OUTPUT
+            echo "is_automated=$HAS_AUTOMATED_LABEL" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ steps.pr-details.outputs.pr_ref }}
           fetch-depth: 0
 
       - name: Claude Code Review
@@ -107,13 +133,13 @@ jobs:
             --allowedTools "Read,Write,WebSearch,Bash(gh pr:*),Bash(git:*)"
 
       - name: Wait for checks
-        if: success()
+        if: false  # Temporarily disabled for manual testing
         run: |
           echo "Waiting for all checks to complete..."
           sleep 30
 
           # Check if PR checks workflow passed
-          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
 
           # Get the latest status of checks
           CHECKS_STATUS=$(gh pr checks $PR_NUMBER --json state -q '.[].state' || echo "")
@@ -128,9 +154,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto-merge PR
-        if: success()
+        if: false  # Temporarily disabled for manual testing
         run: |
-          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
 
           # Check if Claude approved the PR
           APPROVALS=$(gh pr view $PR_NUMBER --json reviews -q '[.reviews[] | select(.state == "APPROVED")] | length')
