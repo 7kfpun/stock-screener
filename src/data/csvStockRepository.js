@@ -45,6 +45,18 @@ export async function fetchStockSnapshots(date = 'latest') {
   return createStockCollection(rows);
 }
 
+export async function fetchStockSummary(date = 'latest') {
+  const filename = date === 'latest' ? 'latest.json' : `${date}.json`;
+  try {
+    const response = await fetch(`${DATA_BASE_URL}summary/${filename}`);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (err) {
+    console.warn('Failed to load summary:', err);
+    return null;
+  }
+}
+
 export async function fetchAvailableDates(limit = 50) {
   const csvText = await fetchText('dates.csv');
   const dates = csvText

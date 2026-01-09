@@ -30,7 +30,7 @@ import { CountryFlag } from './CountryFlag';
  * StockDetailPanel - Displays detailed Investor Score breakdown
  * Responsive: Desktop (split-view panel) / Mobile (full-screen dialog)
  */
-export function StockDetailPanel({ stock, onClose, isMobile }) {
+export function StockDetailPanel({ stock, summary, onClose, isMobile }) {
   const theme = useTheme();
 
   if (!stock) return null;
@@ -124,7 +124,44 @@ export function StockDetailPanel({ stock, onClose, isMobile }) {
         </Button>
       </Stack>
 
+
+
       <Divider sx={{ mb: 2 }} />
+
+      {/* Daily Summary Section */}
+      {(() => {
+        const stockSummary = summary?.top_stocks?.find(s => s.ticker === stock.Ticker);
+        if (!stockSummary) return null;
+
+        return (
+          <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 2, border: '1px solid', borderColor: 'primary.main' }}>
+            <Typography variant="body2" paragraph sx={{ mb: 2 }}>
+              {stockSummary.description}
+            </Typography>
+
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" fontWeight={700} color="text.primary" display="block" gutterBottom>
+                Why Selected
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {stockSummary.why_selected}
+              </Typography>
+            </Box>
+
+            {stockSummary.latest_news && (
+              <Box>
+                <Typography variant="caption" fontWeight={700} color="text.primary" display="block" gutterBottom>
+                  Latest News
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {stockSummary.latest_news}
+                </Typography>
+              </Box>
+            )}
+            <Divider sx={{ mt: 2 }} />
+          </Box>
+        );
+      })()}
 
       {/* Radar Chart */}
       <Typography variant="subtitle1" gutterBottom fontWeight="medium">

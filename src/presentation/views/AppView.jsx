@@ -62,6 +62,7 @@ const getTheme = (mode) => createTheme({
 function AppView() {
   const {
     stocks,
+    summary,
     availableDates,
     selectedDate,
     loading,
@@ -293,15 +294,19 @@ function AppView() {
         )}
 
         {!loading && !error && (
-          <Box sx={{ display: 'flex', gap: 0, height: 'calc(100vh - 200px)' }}>
-            <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-              {view === 'table' && (
-                <TableView
-                  data={filteredData}
-                  onStockSelect={setSelectedTicker}
-                  selectedTicker={selectedTicker}
-                />
-              )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: 'calc(100vh - 200px)' }}>
+
+            {/* Daily Summary Section Removed as per request */}
+
+            <Box sx={{ display: 'flex', gap: 0, flexGrow: 1, minHeight: 0 }}>
+              <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+                {view === 'table' && (
+                  <TableView
+                    data={filteredData}
+                    onStockSelect={setSelectedTicker}
+                    selectedTicker={selectedTicker}
+                  />
+                )}
               {view === 'heatmap' && (
                 <HeatmapView
                   data={stocks}
@@ -314,16 +319,19 @@ function AppView() {
             {!isMobile && selectedStock && (
               <StockDetailPanel
                 stock={selectedStock}
+                summary={summary}
                 onClose={() => setSelectedTicker(null)}
                 isMobile={false}
               />
             )}
+            </Box>
           </Box>
         )}
 
         {isMobile && selectedStock && (
           <StockDetailPanel
             stock={selectedStock}
+            summary={summary}
             onClose={() => setSelectedTicker(null)}
             isMobile={true}
           />
