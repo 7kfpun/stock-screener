@@ -134,33 +134,69 @@ export function StockDetailPanel({ stock, summary, onClose, isMobile }) {
         if (!stockSummary) return null;
 
         return (
-          <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 2, border: '1px solid', borderColor: 'primary.main' }}>
-            <Typography variant="body2" paragraph sx={{ mb: 2 }}>
+
+          <Box
+            sx={{
+              mb: 3,
+              position: 'relative',
+              p: 2.5,
+              borderRadius: 2,
+              border: 0,
+              boxShadow: theme.palette.mode === 'dark' 
+                ? '0 0 0 1px rgba(139, 127, 245, 0.3), 0 4px 12px rgba(139, 127, 245, 0.15)'
+                : '0 0 0 1px rgba(139, 127, 245, 0.2), 0 4px 12px rgba(139, 127, 245, 0.1)',
+              background: theme.palette.mode === 'dark'
+                ? 'linear-gradient(135deg, rgba(139, 127, 245, 0.1) 0%, rgba(139, 127, 245, 0.05) 100%)'
+                : 'linear-gradient(135deg, rgba(139, 127, 245, 0.08) 0%, rgba(139, 127, 245, 0.02) 100%)',
+            }}
+          >
+            <Chip 
+              label={`★ Daily Pick: ${summary.date}`}
+              size="small"
+              sx={{
+                position: 'absolute',
+                top: -12,
+                left: 16,
+                fontWeight: 700,
+                bgcolor: 'primary.main',
+                color: 'common.white',
+                border: '2px solid',
+                borderColor: 'background.paper',
+                boxShadow: 2,
+                height: 24,
+                fontSize: '0.75rem',
+              }}
+            />
+            
+            <Typography variant="body1" paragraph sx={{ mt: 1, mb: 2, lineHeight: 1.6 }}>
               {stockSummary.description}
             </Typography>
 
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" fontWeight={700} color="text.primary" display="block" gutterBottom>
-                Why Selected
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+            <Box sx={{ mb: 2.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                <Typography variant="subtitle2" color="primary.main" fontWeight={700}>
+                  Why Selected
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
                 {stockSummary.why_selected}
               </Typography>
             </Box>
 
             {stockSummary.latest_news && (
               <Box>
-                <Typography variant="caption" fontWeight={700} color="text.primary" display="block" gutterBottom>
+                <Typography variant="subtitle2" color="primary.main" fontWeight={700} gutterBottom>
                   Latest News
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
                   {stockSummary.latest_news}
                 </Typography>
               </Box>
             )}
-            <Divider sx={{ mt: 2 }} />
+            <Divider sx={{ mt: 2.5, borderColor: 'rgba(139, 127, 245, 0.2)' }} />
           </Box>
         );
+
       })()}
 
       {/* Radar Chart */}
