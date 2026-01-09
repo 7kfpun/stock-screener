@@ -4,12 +4,21 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "public/data/**"
   push:
     branches:
       - main
+    paths-ignore:
+      - "public/data/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
+    timeout-minutes: 10
     # Skip full test suite for automated data-only PRs
     # They're already validated by the daily-stock-update workflow
     if: "!contains(github.event.pull_request.labels.*.name, 'automated')"
@@ -21,14 +30,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install Node dependencies
         run: npm ci

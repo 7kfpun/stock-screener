@@ -20,6 +20,7 @@ jobs:
     if: |
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'automated')) ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/claude-review'))
+    timeout-minutes: 15
     runs-on: ubuntu-latest
 
     steps:
@@ -144,7 +145,7 @@ jobs:
             --allowedTools "Read,Write,WebSearch,Bash(gh pr:*),Bash(git:*)"
 
       - name: Wait for checks
-        if: false  # Temporarily disabled for manual testing
+        if: false # Temporarily disabled for manual testing
         run: |
           echo "Waiting for all checks to complete..."
           sleep 30
@@ -165,7 +166,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto-merge PR
-        if: false  # Temporarily disabled for manual testing
+        if: false # Temporarily disabled for manual testing
         run: |
           PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
 
