@@ -160,6 +160,11 @@ export function StockPriceChart({ ticker }) {
                 fontSize: 11
               }
             }}
+            tickFormatter={(value) => {
+              // Format axis ticks as whole numbers for stocks >= $10
+              // or 2 decimals for stocks < $10
+              return value >= 10 ? Math.round(value).toString() : value.toFixed(2);
+            }}
           />
 
           <YAxis
@@ -180,6 +185,7 @@ export function StockPriceChart({ ticker }) {
                 fontSize: 11
               }
             }}
+            tickFormatter={(value) => Math.round(value).toString()}
           />
 
           <Tooltip
