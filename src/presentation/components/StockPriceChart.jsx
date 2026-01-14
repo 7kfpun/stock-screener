@@ -104,13 +104,24 @@ export function StockPriceChart({ ticker }) {
     );
   }
 
+  // Calculate price domain with padding to visually separate from score
+  const prices = data.map(d => d.price);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const priceRange = maxPrice - minPrice;
+  const pricePadding = Math.max(priceRange * 0.1, 1); // 10% padding or at least 1
+  const priceDomain = [
+    Math.max(0, minPrice - pricePadding),
+    maxPrice + pricePadding
+  ];
+
   return (
     <Box sx={{ mt: 3 }}>
       <Typography variant="subtitle1" gutterBottom fontWeight="medium">
         Price & Score History
       </Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        Showing {data.length} continuous data points
+        Showing {data.length} data points
       </Typography>
 
       <ResponsiveContainer width="100%" height={300}>
@@ -134,6 +145,7 @@ export function StockPriceChart({ ticker }) {
 
           <YAxis
             yAxisId="left"
+            domain={priceDomain}
             tick={{
               fill: theme.palette.text.secondary,
               fontSize: 11
@@ -208,7 +220,7 @@ export function StockPriceChart({ ticker }) {
             dataKey="price"
             stroke={theme.palette.primary.main}
             strokeWidth={2}
-            dot={{ r: 3 }}
+            dot={false}
             activeDot={{ r: 5 }}
             isAnimationActive={false}
           />
@@ -219,7 +231,7 @@ export function StockPriceChart({ ticker }) {
             dataKey="score"
             stroke={theme.palette.secondary.main}
             strokeWidth={2}
-            dot={{ r: 3 }}
+            dot={false}
             activeDot={{ r: 5 }}
             isAnimationActive={false}
           />

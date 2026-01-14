@@ -70,15 +70,19 @@ export async function fetchAvailableDates(limit = 50) {
 
 /**
  * Fetch historical data for a specific ticker across all available dates.
- * Returns continuous data points (Price, Investor_Score, date) from most recent backwards.
- * Stops at the first gap to ensure continuity.
+ * Returns up to the last 30 data points (Price, Investor_Score, date) where data exists.
+ * Does not require continuous data - collects all available points.
  */
-export async function fetchStockHistory(ticker) {
+export async function fetchStockHistory(ticker, maxPoints = 30) {
   const dates = await fetchAvailableDates(0); // Get all dates
   const history = [];
 
-  // Iterate from newest to oldest
-  for (const date of dates) {
+  // Iterate from newest to oldest, collecting up to maxPoints * 2 to ensure we get enough
+  // (in case there are gaps)
+  const searchLimit = Math.min(dates.length, maxPoints * 3);
+
+  for (let i = 0; i < searchLimit && history.length < maxPoints; i++) {
+    const date = dates[i];
     try {
       const stocks = await fetchStockSnapshots(date);
       const stock = stocks.find((s) => s.Ticker === ticker);
@@ -89,15 +93,10 @@ export async function fetchStockHistory(ticker) {
           price: stock.Price,
           score: stock.Investor_Score,
         });
-      } else if (history.length > 0) {
-        // Stop at first gap to maintain continuity
-        break;
       }
     } catch (err) {
       console.warn(`Failed to load ${date} for ${ticker}:`, err);
-      if (history.length > 0) {
-        break; // Stop at first error if we already have data
-      }
+      // Continue searching even if one date fails
     }
   }
 
