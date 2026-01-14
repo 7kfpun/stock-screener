@@ -67,3 +67,40 @@ export async function fetchAvailableDates(limit = 50) {
 
   return limit > 0 ? dates.slice(0, limit) : dates;
 }
+
+/**
+ * Fetch historical data for a specific ticker across all available dates.
+ * Returns continuous data points (Price, Investor_Score, date) from most recent backwards.
+ * Stops at the first gap to ensure continuity.
+ */
+export async function fetchStockHistory(ticker) {
+  const dates = await fetchAvailableDates(0); // Get all dates
+  const history = [];
+
+  // Iterate from newest to oldest
+  for (const date of dates) {
+    try {
+      const stocks = await fetchStockSnapshots(date);
+      const stock = stocks.find((s) => s.Ticker === ticker);
+
+      if (stock && stock.Price != null && stock.Investor_Score != null) {
+        history.push({
+          date,
+          price: stock.Price,
+          score: stock.Investor_Score,
+        });
+      } else if (history.length > 0) {
+        // Stop at first gap to maintain continuity
+        break;
+      }
+    } catch (err) {
+      console.warn(`Failed to load ${date} for ${ticker}:`, err);
+      if (history.length > 0) {
+        break; // Stop at first error if we already have data
+      }
+    }
+  }
+
+  // Reverse to get chronological order (oldest first)
+  return history.reverse();
+}
