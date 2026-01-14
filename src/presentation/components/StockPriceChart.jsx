@@ -6,8 +6,8 @@ import {
   useTheme
 } from '@mui/material';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -19,7 +19,7 @@ import { fetchStockHistory } from '../../data/csvStockRepository';
 import { formatPrice, formatNumber } from '../../shared/formatters';
 
 /**
- * StockPriceChart - Displays historical price and score for a stock
+ * StockPriceChart - Displays historical price and score for a stock with area chart
  * Uses continuous data from most recent backwards (stops at first gap)
  */
 export function StockPriceChart({ ticker }) {
@@ -116,16 +116,13 @@ export function StockPriceChart({ ticker }) {
   ];
 
   return (
-    <Box sx={{ mt: 3 }}>
+    <Box>
       <Typography variant="subtitle1" gutterBottom fontWeight="medium">
         Price & Score History
       </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        Showing {data.length} data points
-      </Typography>
 
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart
+        <AreaChart
           data={data}
           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
@@ -220,28 +217,32 @@ export function StockPriceChart({ ticker }) {
             }}
           />
 
-          <Line
+          <Area
             yAxisId="left"
-            type="monotone"
+            type="linear"
             dataKey="price"
             stroke={theme.palette.primary.main}
+            fill={theme.palette.primary.main}
+            fillOpacity={0.3}
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 5 }}
             isAnimationActive={false}
           />
 
-          <Line
+          <Area
             yAxisId="right"
-            type="monotone"
+            type="linear"
             dataKey="score"
             stroke={theme.palette.secondary.main}
+            fill={theme.palette.secondary.main}
+            fillOpacity={0.3}
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 5 }}
             isAnimationActive={false}
           />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </Box>
   );

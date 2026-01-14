@@ -15,17 +15,18 @@ vi.mock('recharts', async () => {
   return {
     ...actual,
     ResponsiveContainer: ({ children }) => <div data-testid="responsive-container">{children}</div>,
-    LineChart: ({ children, data }) => (
-      <div data-testid="line-chart" data-chart-data={JSON.stringify(data)}>
+    AreaChart: ({ children, data }) => (
+      <div data-testid="area-chart" data-chart-data={JSON.stringify(data)}>
         {children}
       </div>
     ),
-    Line: ({ yAxisId, dataKey, dot, strokeWidth }) => (
+    Area: ({ yAxisId, dataKey, dot, strokeWidth, fillOpacity }) => (
       <div
-        data-testid={`line-${dataKey}`}
+        data-testid={`area-${dataKey}`}
         data-y-axis={yAxisId}
         data-dot={typeof dot === 'object' ? 'object' : String(dot)}
         data-stroke-width={strokeWidth}
+        data-fill-opacity={fillOpacity}
       />
     ),
     XAxis: ({ dataKey }) => <div data-testid="x-axis" data-key={dataKey} />,
@@ -97,26 +98,10 @@ describe('StockPriceChart', () => {
       expect(screen.getByText('Price & Score History')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('line-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('area-chart')).toBeInTheDocument();
   });
 
-  it('should display correct data point count in caption', async () => {
-    const mockHistory = [
-      { date: '2026-01-12', price: 150.25, score: 85.5 },
-      { date: '2026-01-13', price: 151.30, score: 86.0 },
-      { date: '2026-01-14', price: 152.10, score: 86.5 },
-    ];
-
-    csvStockRepository.fetchStockHistory.mockResolvedValue(mockHistory);
-
-    renderWithTheme(<StockPriceChart ticker="AAPL" />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Showing 3 data points')).toBeInTheDocument();
-    });
-  });
-
-  it('should render lines without dots (dot=false)', async () => {
+  it('should render areas without dots (dot=false)', async () => {
     const mockHistory = [
       { date: '2026-01-12', price: 150.25, score: 85.5 },
       { date: '2026-01-13', price: 151.30, score: 86.0 },
@@ -127,12 +112,12 @@ describe('StockPriceChart', () => {
     renderWithTheme(<StockPriceChart ticker="AAPL" />);
 
     await waitFor(() => {
-      const priceLine = screen.getByTestId('line-price');
-      const scoreLine = screen.getByTestId('line-score');
+      const priceArea = screen.getByTestId('area-price');
+      const scoreArea = screen.getByTestId('area-score');
 
-      // Both lines should have dot={false}
-      expect(priceLine.getAttribute('data-dot')).toBe('false');
-      expect(scoreLine.getAttribute('data-dot')).toBe('false');
+      // Both areas should have dot={false}
+      expect(priceArea.getAttribute('data-dot')).toBe('false');
+      expect(scoreArea.getAttribute('data-dot')).toBe('false');
     });
   });
 
@@ -183,7 +168,7 @@ describe('StockPriceChart', () => {
     });
   });
 
-  it('should use appropriate stroke width for lines', async () => {
+  it('should use appropriate stroke width for areas', async () => {
     const mockHistory = [
       { date: '2026-01-12', price: 150, score: 85 },
       { date: '2026-01-13', price: 151, score: 86 },
@@ -194,12 +179,12 @@ describe('StockPriceChart', () => {
     renderWithTheme(<StockPriceChart ticker="AAPL" />);
 
     await waitFor(() => {
-      const priceLine = screen.getByTestId('line-price');
-      const scoreLine = screen.getByTestId('line-score');
+      const priceArea = screen.getByTestId('area-price');
+      const scoreArea = screen.getByTestId('area-score');
 
-      // Both lines should have strokeWidth of 2
-      expect(priceLine.getAttribute('data-stroke-width')).toBe('2');
-      expect(scoreLine.getAttribute('data-stroke-width')).toBe('2');
+      // Both areas should have strokeWidth of 2
+      expect(priceArea.getAttribute('data-stroke-width')).toBe('2');
+      expect(scoreArea.getAttribute('data-stroke-width')).toBe('2');
     });
   });
 
