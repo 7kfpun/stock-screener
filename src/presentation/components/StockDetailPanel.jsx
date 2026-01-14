@@ -25,6 +25,7 @@ import {
 import { calculateScoreBreakdown } from '../../domain/stock/scoreCalculator';
 import { tooltipFieldGroups } from './StockTooltipConfig';
 import { CountryFlag } from './CountryFlag';
+import { StockPriceChart } from './StockPriceChart';
 
 /**
  * StockDetailPanel - Displays detailed Investor Score breakdown
@@ -295,6 +296,9 @@ export function StockDetailPanel({ stock, summary, onClose, isMobile }) {
           })}
         </Stack>
       </Box>
+
+      {/* Price & Score History Chart */}
+      <StockPriceChart ticker={stock.Ticker} />
 
       {/* Complete Stock Details */}
       <Divider sx={{ my: 3 }} />
