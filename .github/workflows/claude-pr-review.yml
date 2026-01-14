@@ -145,7 +145,7 @@ jobs:
             --allowedTools "Read,Write,WebSearch,Bash(gh pr:*),Bash(git:*)"
 
       - name: Wait for checks
-        if: false # Temporarily disabled for manual testing
+        if: steps.pr-details.outputs.is_automated == 'true'
         run: |
           echo "Waiting for all checks to complete..."
           sleep 30
@@ -166,7 +166,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto-merge PR
-        if: false # Temporarily disabled for manual testing
+        if: steps.pr-details.outputs.is_automated == 'true'
         run: |
           PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
 
