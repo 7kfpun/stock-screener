@@ -74,31 +74,29 @@ export async function fetchAvailableDates(limit = 50) {
  * Does not require continuous data - collects all available points.
  */
 export async function fetchStockHistory(ticker, maxPoints = 30) {
-  const dates = await fetchAvailableDates(0); // Get all dates
-  const history = [];
+  const dates = await fetchAvailableDates(maxPoints); // Get last maxPoints dates
 
-  // Iterate from newest to oldest, collecting up to maxPoints * 2 to ensure we get enough
-  // (in case there are gaps)
-  const searchLimit = Math.min(dates.length, maxPoints * 3);
-
-  for (let i = 0; i < searchLimit && history.length < maxPoints; i++) {
-    const date = dates[i];
-    try {
+  // Download all CSVs in parallel using Promise.allSettled
+  const results = await Promise.allSettled(
+    dates.map(async (date) => {
       const stocks = await fetchStockSnapshots(date);
       const stock = stocks.find((s) => s.Ticker === ticker);
 
       if (stock && stock.Price != null && stock.Investor_Score != null) {
-        history.push({
+        return {
           date,
           price: stock.Price,
           score: stock.Investor_Score,
-        });
+        };
       }
-    } catch (err) {
-      console.warn(`Failed to load ${date} for ${ticker}:`, err);
-      // Continue searching even if one date fails
-    }
-  }
+      return null;
+    })
+  );
+
+  // Extract successful results and filter out nulls
+  const history = results
+    .filter((result) => result.status === 'fulfilled' && result.value !== null)
+    .map((result) => result.value);
 
   // Reverse to get chronological order (oldest first)
   return history.reverse();
