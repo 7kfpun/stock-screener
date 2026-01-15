@@ -8,6 +8,7 @@ import {
 import {
   AreaChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -19,7 +20,7 @@ import { fetchStockHistory } from '../../data/csvStockRepository';
 import { formatPrice, formatNumber } from '../../shared/formatters';
 
 /**
- * StockPriceChart - Displays historical price and score for a stock with area chart
+ * StockPriceChart - Displays historical price (area) and score (line) for a stock
  * Uses continuous data from most recent backwards (stops at first gap)
  */
 export function StockPriceChart({ ticker }) {
@@ -217,13 +218,11 @@ export function StockPriceChart({ ticker }) {
             }}
           />
 
-          <Area
-            yAxisId="left"
+          <Line
+            yAxisId="right"
             type="linear"
-            dataKey="price"
-            stroke={theme.palette.primary.main}
-            fill={theme.palette.primary.main}
-            fillOpacity={0.3}
+            dataKey="score"
+            stroke={theme.palette.secondary.main}
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 5 }}
@@ -231,11 +230,11 @@ export function StockPriceChart({ ticker }) {
           />
 
           <Area
-            yAxisId="right"
+            yAxisId="left"
             type="linear"
-            dataKey="score"
-            stroke={theme.palette.secondary.main}
-            fill={theme.palette.secondary.main}
+            dataKey="price"
+            stroke={theme.palette.primary.main}
+            fill={theme.palette.primary.main}
             fillOpacity={0.3}
             strokeWidth={2}
             dot={false}

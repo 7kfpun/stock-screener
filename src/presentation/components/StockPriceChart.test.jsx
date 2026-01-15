@@ -29,6 +29,14 @@ vi.mock('recharts', async () => {
         data-fill-opacity={fillOpacity}
       />
     ),
+    Line: ({ yAxisId, dataKey, dot, strokeWidth }) => (
+      <div
+        data-testid={`line-${dataKey}`}
+        data-y-axis={yAxisId}
+        data-dot={typeof dot === 'object' ? 'object' : String(dot)}
+        data-stroke-width={strokeWidth}
+      />
+    ),
     XAxis: ({ dataKey }) => <div data-testid="x-axis" data-key={dataKey} />,
     YAxis: ({ yAxisId, domain }) => (
       <div
@@ -101,7 +109,7 @@ describe('StockPriceChart', () => {
     expect(screen.getByTestId('area-chart')).toBeInTheDocument();
   });
 
-  it('should render areas without dots (dot=false)', async () => {
+  it('should render price area and score line without dots (dot=false)', async () => {
     const mockHistory = [
       { date: '2026-01-12', price: 150.25, score: 85.5 },
       { date: '2026-01-13', price: 151.30, score: 86.0 },
@@ -113,11 +121,11 @@ describe('StockPriceChart', () => {
 
     await waitFor(() => {
       const priceArea = screen.getByTestId('area-price');
-      const scoreArea = screen.getByTestId('area-score');
+      const scoreLine = screen.getByTestId('line-score');
 
-      // Both areas should have dot={false}
+      // Both should have dot={false}
       expect(priceArea.getAttribute('data-dot')).toBe('false');
-      expect(scoreArea.getAttribute('data-dot')).toBe('false');
+      expect(scoreLine.getAttribute('data-dot')).toBe('false');
     });
   });
 
@@ -168,7 +176,7 @@ describe('StockPriceChart', () => {
     });
   });
 
-  it('should use appropriate stroke width for areas', async () => {
+  it('should use appropriate stroke width for price area and score line', async () => {
     const mockHistory = [
       { date: '2026-01-12', price: 150, score: 85 },
       { date: '2026-01-13', price: 151, score: 86 },
@@ -180,11 +188,11 @@ describe('StockPriceChart', () => {
 
     await waitFor(() => {
       const priceArea = screen.getByTestId('area-price');
-      const scoreArea = screen.getByTestId('area-score');
+      const scoreLine = screen.getByTestId('line-score');
 
-      // Both areas should have strokeWidth of 2
+      // Both should have strokeWidth of 2
       expect(priceArea.getAttribute('data-stroke-width')).toBe('2');
-      expect(scoreArea.getAttribute('data-stroke-width')).toBe('2');
+      expect(scoreLine.getAttribute('data-stroke-width')).toBe('2');
     });
   });
 
