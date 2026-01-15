@@ -6,7 +6,8 @@ import {
   useTheme
 } from '@mui/material';
 import {
-  LineChart,
+  AreaChart,
+  Area,
   Line,
   XAxis,
   YAxis,
@@ -19,7 +20,7 @@ import { fetchStockHistory } from '../../data/csvStockRepository';
 import { formatPrice, formatNumber } from '../../shared/formatters';
 
 /**
- * StockPriceChart - Displays historical price and score for a stock
+ * StockPriceChart - Displays historical price (area) and score (line) for a stock
  * Uses continuous data from most recent backwards (stops at first gap)
  */
 export function StockPriceChart({ ticker }) {
@@ -104,28 +105,32 @@ export function StockPriceChart({ ticker }) {
     );
   }
 
-  // Calculate price domain with padding to visually separate from score
+  // Calculate price domain - positioned in upper half of chart
   const prices = data.map(d => d.price);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
   const priceRange = maxPrice - minPrice;
   const pricePadding = Math.max(priceRange * 0.1, 1); // 10% padding or at least 1
+
+  // Scale price to occupy upper portion (visually above score)
+  const priceMin = Math.max(0, minPrice - pricePadding);
+  const priceMax = maxPrice + pricePadding;
+  const priceRangeWithPadding = priceMax - priceMin;
+
+  // Extend domain downward to push price visually higher
   const priceDomain = [
-    Math.max(0, minPrice - pricePadding),
-    maxPrice + pricePadding
+    priceMin - (priceRangeWithPadding * 1.5), // Add space below to push up
+    priceMax
   ];
 
   return (
-    <Box sx={{ mt: 3 }}>
+    <Box>
       <Typography variant="subtitle1" gutterBottom fontWeight="medium">
         Price & Score History
       </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        Showing {data.length} data points
-      </Typography>
 
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart
+        <AreaChart
           data={data}
           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
@@ -170,7 +175,7 @@ export function StockPriceChart({ ticker }) {
           <YAxis
             yAxisId="right"
             orientation="right"
-            domain={[0, 100]}
+            domain={[0, 200]}
             tick={{
               fill: theme.palette.text.secondary,
               fontSize: 11
@@ -221,19 +226,8 @@ export function StockPriceChart({ ticker }) {
           />
 
           <Line
-            yAxisId="left"
-            type="monotone"
-            dataKey="price"
-            stroke={theme.palette.primary.main}
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 5 }}
-            isAnimationActive={false}
-          />
-
-          <Line
             yAxisId="right"
-            type="monotone"
+            type="linear"
             dataKey="score"
             stroke={theme.palette.secondary.main}
             strokeWidth={2}
@@ -241,7 +235,20 @@ export function StockPriceChart({ ticker }) {
             activeDot={{ r: 5 }}
             isAnimationActive={false}
           />
-        </LineChart>
+
+          <Area
+            yAxisId="left"
+            type="linear"
+            dataKey="price"
+            stroke={theme.palette.primary.main}
+            fill={theme.palette.primary.main}
+            fillOpacity={0.6}
+            strokeWidth={3}
+            dot={false}
+            activeDot={{ r: 5 }}
+            isAnimationActive={false}
+          />
+        </AreaChart>
       </ResponsiveContainer>
     </Box>
   );

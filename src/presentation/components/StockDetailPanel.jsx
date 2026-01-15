@@ -200,6 +200,11 @@ export function StockDetailPanel({ stock, summary, onClose, isMobile }) {
 
       })()}
 
+      {/* Price & Score History Chart */}
+      <StockPriceChart ticker={stock.Ticker} />
+
+      <Divider sx={{ my: 3 }} />
+
       {/* Radar Chart */}
       <Typography variant="subtitle1" gutterBottom fontWeight="medium">
         Score Breakdown
@@ -296,9 +301,6 @@ export function StockDetailPanel({ stock, summary, onClose, isMobile }) {
           })}
         </Stack>
       </Box>
-
-      {/* Price & Score History Chart */}
-      <StockPriceChart ticker={stock.Ticker} />
 
       {/* Complete Stock Details */}
       <Divider sx={{ my: 3 }} />
