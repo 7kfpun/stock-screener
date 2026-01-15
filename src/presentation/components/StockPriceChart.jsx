@@ -105,15 +105,22 @@ export function StockPriceChart({ ticker }) {
     );
   }
 
-  // Calculate price domain with padding to visually separate from score
+  // Calculate price domain - positioned in upper half of chart
   const prices = data.map(d => d.price);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
   const priceRange = maxPrice - minPrice;
   const pricePadding = Math.max(priceRange * 0.1, 1); // 10% padding or at least 1
+
+  // Scale price to occupy upper portion (visually above score)
+  const priceMin = Math.max(0, minPrice - pricePadding);
+  const priceMax = maxPrice + pricePadding;
+  const priceRangeWithPadding = priceMax - priceMin;
+
+  // Extend domain downward to push price visually higher
   const priceDomain = [
-    Math.max(0, minPrice - pricePadding),
-    maxPrice + pricePadding
+    priceMin - (priceRangeWithPadding * 1.5), // Add space below to push up
+    priceMax
   ];
 
   return (
@@ -168,7 +175,7 @@ export function StockPriceChart({ ticker }) {
           <YAxis
             yAxisId="right"
             orientation="right"
-            domain={[0, 100]}
+            domain={[0, 200]}
             tick={{
               fill: theme.palette.text.secondary,
               fontSize: 11
@@ -235,8 +242,8 @@ export function StockPriceChart({ ticker }) {
             dataKey="price"
             stroke={theme.palette.primary.main}
             fill={theme.palette.primary.main}
-            fillOpacity={0.3}
-            strokeWidth={2}
+            fillOpacity={0.6}
+            strokeWidth={3}
             dot={false}
             activeDot={{ r: 5 }}
             isAnimationActive={false}

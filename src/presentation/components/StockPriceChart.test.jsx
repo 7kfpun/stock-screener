@@ -126,10 +126,13 @@ describe('StockPriceChart', () => {
       // Both should have dot={false}
       expect(priceArea.getAttribute('data-dot')).toBe('false');
       expect(scoreLine.getAttribute('data-dot')).toBe('false');
+
+      // Price area should have higher opacity for prominence
+      expect(priceArea.getAttribute('data-fill-opacity')).toBe('0.6');
     });
   });
 
-  it('should set custom domain for price Y-axis based on data', async () => {
+  it('should set custom domain for price Y-axis positioned in upper portion', async () => {
     const mockHistory = [
       { date: '2026-01-12', price: 100, score: 85 },
       { date: '2026-01-13', price: 150, score: 86 },
@@ -149,15 +152,14 @@ describe('StockPriceChart', () => {
       expect(Array.isArray(domain)).toBe(true);
       expect(domain.length).toBe(2);
 
-      // Price range is 100-200, so domain should be roughly [90, 210] with 10% padding
-      expect(domain[0]).toBeGreaterThanOrEqual(85);
-      expect(domain[0]).toBeLessThan(100);
-      expect(domain[1]).toBeGreaterThan(200);
-      expect(domain[1]).toBeLessThanOrEqual(215);
+      // Domain should be extended downward to position price in upper portion
+      // With extended domain, minimum should be significantly below the actual min price
+      expect(domain[0]).toBeLessThan(100); // Should be extended below min price
+      expect(domain[1]).toBeGreaterThan(200); // Should include max price with padding
     });
   });
 
-  it('should keep score Y-axis domain fixed at [0, 100]', async () => {
+  it('should keep score Y-axis domain extended to position score lower', async () => {
     const mockHistory = [
       { date: '2026-01-12', price: 150, score: 85 },
       { date: '2026-01-13', price: 151, score: 86 },
@@ -171,8 +173,8 @@ describe('StockPriceChart', () => {
       const rightYAxis = screen.getByTestId('y-axis-right');
       const domain = JSON.parse(rightYAxis.getAttribute('data-domain'));
 
-      // Score axis should always be [0, 100]
-      expect(domain).toEqual([0, 100]);
+      // Score axis extended to [0, 200] to position it visually lower than price
+      expect(domain).toEqual([0, 200]);
     });
   });
 
@@ -190,13 +192,14 @@ describe('StockPriceChart', () => {
       const priceArea = screen.getByTestId('area-price');
       const scoreLine = screen.getByTestId('line-score');
 
-      // Both should have strokeWidth of 2
-      expect(priceArea.getAttribute('data-stroke-width')).toBe('2');
+      // Price area should have thicker stroke (3) for prominence
+      expect(priceArea.getAttribute('data-stroke-width')).toBe('3');
+      // Score line should have strokeWidth of 2
       expect(scoreLine.getAttribute('data-stroke-width')).toBe('2');
     });
   });
 
-  it('should calculate minimum price domain padding of 1', async () => {
+  it('should extend price domain to position chart in upper portion', async () => {
     // Test with very small price range
     const mockHistory = [
       { date: '2026-01-12', price: 100.0, score: 85 },
@@ -211,9 +214,9 @@ describe('StockPriceChart', () => {
       const leftYAxis = screen.getByTestId('y-axis-left');
       const domain = JSON.parse(leftYAxis.getAttribute('data-domain'));
 
-      // Should have at least 1 unit of padding even for small range
-      expect(domain[0]).toBeLessThanOrEqual(99);
-      expect(domain[1]).toBeGreaterThanOrEqual(101.1);
+      // Domain should be extended downward to push price area visually higher
+      expect(domain[0]).toBeLessThan(100); // Extended below actual min
+      expect(domain[1]).toBeGreaterThan(100.1); // Includes max with padding
     });
   });
 });
