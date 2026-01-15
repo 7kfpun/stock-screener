@@ -75,30 +75,33 @@ export async function fetchAvailableDates(limit = 50) {
  */
 export async function fetchStockHistory(ticker, maxPoints = 30) {
   const dates = await fetchAvailableDates(0); // Get all dates
-  const history = [];
 
-  // Iterate from newest to oldest, collecting up to maxPoints * 2 to ensure we get enough
-  // (in case there are gaps)
+  // Fetch CSVs in parallel to improve performance
   const searchLimit = Math.min(dates.length, maxPoints * 3);
+  const datesToFetch = dates.slice(0, searchLimit);
 
-  for (let i = 0; i < searchLimit && history.length < maxPoints; i++) {
-    const date = dates[i];
-    try {
+  // Download all CSVs in parallel using Promise.allSettled
+  const results = await Promise.allSettled(
+    datesToFetch.map(async (date) => {
       const stocks = await fetchStockSnapshots(date);
       const stock = stocks.find((s) => s.Ticker === ticker);
 
       if (stock && stock.Price != null && stock.Investor_Score != null) {
-        history.push({
+        return {
           date,
           price: stock.Price,
           score: stock.Investor_Score,
-        });
+        };
       }
-    } catch (err) {
-      console.warn(`Failed to load ${date} for ${ticker}:`, err);
-      // Continue searching even if one date fails
-    }
-  }
+      return null;
+    })
+  );
+
+  // Extract successful results and filter out nulls
+  const history = results
+    .filter((result) => result.status === 'fulfilled' && result.value !== null)
+    .map((result) => result.value)
+    .slice(0, maxPoints); // Limit to maxPoints
 
   // Reverse to get chronological order (oldest first)
   return history.reverse();
