@@ -159,7 +159,7 @@ describe('StockPriceChart', () => {
     });
   });
 
-  it('should keep score Y-axis domain extended to position score lower', async () => {
+  it('should keep score Y-axis domain at [0, 100] range', async () => {
     const mockHistory = [
       { date: '2026-01-12', price: 150, score: 85 },
       { date: '2026-01-13', price: 151, score: 86 },
@@ -173,8 +173,8 @@ describe('StockPriceChart', () => {
       const rightYAxis = screen.getByTestId('y-axis-right');
       const domain = JSON.parse(rightYAxis.getAttribute('data-domain'));
 
-      // Score axis extended to [0, 200] to position it visually lower than price
-      expect(domain).toEqual([0, 200]);
+      // Score axis set to [0, 100] matching the score data range
+      expect(domain).toEqual([0, 100]);
     });
   });
 

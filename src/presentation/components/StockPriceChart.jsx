@@ -117,9 +117,10 @@ export function StockPriceChart({ ticker }) {
   const priceMax = maxPrice + pricePadding;
   const priceRangeWithPadding = priceMax - priceMin;
 
-  // Extend domain downward to push price visually higher
+  // Extend domain downward to push price visually higher (above score)
+  // Increased multiplier to maintain separation with score domain at [0, 100]
   const priceDomain = [
-    priceMin - (priceRangeWithPadding * 1.5), // Add space below to push up
+    priceMin - (priceRangeWithPadding * 2.5), // Add space below to push up
     priceMax
   ];
 
@@ -175,7 +176,7 @@ export function StockPriceChart({ ticker }) {
           <YAxis
             yAxisId="right"
             orientation="right"
-            domain={[0, 200]}
+            domain={[0, 100]}
             tick={{
               fill: theme.palette.text.secondary,
               fontSize: 11
