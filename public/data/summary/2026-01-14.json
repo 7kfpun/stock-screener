@@ -1,0 +1,36 @@
+{
+  "date": "2026-01-14",
+  "updated_at": "2026-01-14T00:00:00Z",
+  "top_stocks": [
+    {
+      "ticker": "EXEL",
+      "description": "Exelixis Inc is a multi-platform cancer biotechnology company specializing in the discovery, development, and commercialization of new treatments for difficult-to-treat cancers. The company has established itself as a leader in oncology with FDA-approved drugs including CABOMETYX (cabozantinib) for advanced renal cell carcinoma and medullary thyroid cancer, and is building toward a second commercial franchise with its pipeline candidates.",
+      "latest_news": "Exelixis posted preliminary 2025 revenue near $2.3B with strong 2026 guidance ($2.53-$2.63B total revenue, $2.33-$2.43B net product revenue). The company is advancing zanzalintinib in colorectal cancer trials and presented at J.P. Morgan 2026 Healthcare Conference in January. 2026 is positioned as a significant year for clinical, regulatory, and commercial progress.",
+      "why_selected": "Perfect P/E ratio of 19.04 with exceptional ROE of 30.56% indicates highly efficient capital deployment. Strong Investor Score of 100, low debt-to-equity ratio (0.08), and solid profitability margin (29.63%) demonstrate financial strength. The stock is positioned above its SMA50 and SMA200, with RSI of 56.77 showing balanced momentum. Market cap of $12.1B reflects institutional confidence in the biotech pipeline."
+    },
+    {
+      "ticker": "FUTU",
+      "description": "Futu Holdings Limited is a Hong Kong-based advanced technology company transforming the investing and wealth management experience through a fully digitalized platform. The company provides trade execution, margin financing, and wealth management services across stocks, ETFs, derivatives, and cryptocurrencies through its Moomoo and Money Plus brands. As of September 2025, Futu serves 28.2 million users with 3.1M+ funded accounts.",
+      "latest_news": "Futu's user base grew from 21.1M to 28.2M (Sep 2023 to Sep 2025) with funded accounts surging from 1.65M to 3.13M. JPMorgan Chase raised Futu's price target by 35% to $270 with a 2026 P/E expectation of 28x. Stock surged 9.01% as of January 4, 2026, driven by strong user growth and platform expansion.",
+      "why_selected": "Excellent P/E of 19.45 with healthy ROE of 30.24% indicates strong operational efficiency. Perfect Investor Score of 100 combined with low current ratio of 1.16 and minimal debt-to-equity (0.01 long-term) shows a lean, efficient balance sheet. Trading above both SMA50 and SMA200 with RSI of 50.25 signals neutral momentum with upside potential. Market cap of $16.5B reflects strong investor confidence in fintech growth trajectory."
+    },
+    {
+      "ticker": "KGC",
+      "description": "Kinross Gold Corporation is a Canadian precious metals mining company operating gold and silver mines across the United States, Brazil, Mauritania, Chile, and Canada. The company is transitioning toward sustainable mining with digital transformation initiatives including autonomous vehicle fleets, drone monitoring, and AI-driven solutions. In 2026, the board approved a 17% dividend increase to $0.14 per share annually.",
+      "latest_news": "Kinross approved a 17% dividend increase and announced the Round Mountain Phase X, Kettle River-Curlew, and Bald Mountain Redbird 2 project updates scheduled for January 8, 2026. The company is targeting 25% emissions reduction, 100% water recycling at major sites, and expanded renewable energy capacity by 2026 as part of its sustainability blueprint.",
+      "why_selected": "Trading at a reasonable P/E of 23.23 with solid ROE of 24.09%, indicating disciplined valuation in the cyclical gold sector. Perfect Investor Score of 100 reflects strong fundamentals despite commodity volatility. High RSI of 76.13 shows strong momentum, and the stock is trading well above SMA50 and SMA200. Low leverage (0.16 debt-to-equity) provides financial flexibility. Market cap of $40.2B combined with dividend yield reflects income appeal."
+    },
+    {
+      "ticker": "LLY",
+      "description": "Eli Lilly and Company is a pharmaceutical giant that recently became the first pure-play pharma company to reach a $1 trillion market capitalization. The company is driven by its dominant position in metabolic health and GLP-1 therapies (tirzepatide), a resurgent neuroscience portfolio, and innovative drug discovery partnerships. LLY is positioned to become the top pharmaceutical company by revenue in 2026.",
+      "latest_news": "Eli Lilly crossed the historic $1 trillion market cap threshold in late 2025. The company targets FDA approval of oral obesity drug orforglipron by Q2 2026 and expects $94.3B annual revenue by 2027. Recent initiatives include Lilly Direct (direct-to-consumer GLP-1 platform with ~1M monthly users) and an AI partnership with NVIDIA to revolutionize drug discovery using combined data and computational expertise.",
+      "why_selected": "Outstanding ROE of 96.82% is extraordinary and reflects exceptional capital efficiency in the pharmaceutical sector. Market cap of $1.01 trillion demonstrates dominant market position. P/E of 53.08 reflects premium valuation justified by growth outlook and pipeline strength. Investor Score of 100 underscores quality. Strong profitability margin of 30.99% and robust earnings growth validate the premium multiple. Trading above both moving averages with RSI of 54.17 indicates healthy momentum."
+    },
+    {
+      "ticker": "MU",
+      "description": "Micron Technology is a semiconductor manufacturer specializing in memory solutions including DRAM, NAND flash, and high-bandwidth memory (HBM). The company is experiencing unprecedented demand driven by AI infrastructure expansion and data center buildout. Micron is investing heavily with a $20B fiscal 2026 capex budget and breaking ground on a historic megafab in New York in January 2026.",
+      "latest_news": "Micron fully sold out HBM (high-bandwidth memory) capacity for calendar year 2026, with HBM4 ramping in 2026. The company lifted capex to $20B for fiscal 2026 to capitalize on structural DRAM shortage expected through end of 2026. Stock surged 247% (as of Jan 2, 2026) with a 10.5% jump on Jan 2 alone. Micron breaks ground on New York megafab on January 16, 2026.",
+      "why_selected": "Attractive P/E of 31.69 in the semiconductor sector, particularly given the AI supercycle dynamics. Strong ROE of 22.55% demonstrates profitability despite capex intensity. Perfect Investor Score of 100 reflects confidence in the memory supercycle. Market cap of $375B shows dominant position. HBM capacity already fully sold for 2026 provides revenue visibility. Stock trading significantly above SMA50 and SMA200 with RSI of 65.48 shows strong upward momentum. High trading volume (20M+ daily) indicates institutional adoption."
+    }
+  ]
+}
