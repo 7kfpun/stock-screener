@@ -407,7 +407,7 @@ export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
   }, [selectedTicker, onStockSelect]);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box
         sx={{
           display: 'flex',
@@ -485,6 +485,7 @@ export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
           p: 1,
           flexGrow: 1,
           minHeight: 0,
+          overflow: 'hidden',
         }}
       >
         {sectorLayouts.layouts.map(({ sector, layout, sectorHeight, sectorWidth, isNoGroup }) => {

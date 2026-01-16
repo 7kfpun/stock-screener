@@ -57,6 +57,18 @@ const getTheme = (mode) => createTheme({
   typography: {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        '*': {
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none',
+          },
+        },
+      },
+    },
+  },
 });
 
 function AppView() {
@@ -191,7 +203,7 @@ function AppView() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="xl" sx={{ py: 2 }}>
+      <Container maxWidth="xl" sx={{ py: 2, height: '100vh', overflow: 'hidden' }}>
         <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>
@@ -300,7 +312,7 @@ function AppView() {
             {/* Daily Summary Section Removed as per request */}
 
             <Box sx={{ display: 'flex', gap: 0, flexGrow: 1, minHeight: 0 }}>
-              <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+              <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
                 {view === 'table' && (
                   <TableView
                     data={filteredData}
