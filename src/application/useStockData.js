@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchAvailableDates, fetchStockSnapshots, fetchStockSummary } from '../data/csvStockRepository.js';
 
-const DEFAULT_DATES_LIMIT = 50;
+const DEFAULT_DATES_LIMIT = 120;
 const DEFAULT_DATE = 'latest';
 
 export function useStockData({ initialDate = DEFAULT_DATE, datesLimit = DEFAULT_DATES_LIMIT } = {}) {

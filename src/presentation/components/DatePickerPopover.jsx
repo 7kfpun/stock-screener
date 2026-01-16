@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   Popover,
   IconButton,
@@ -37,6 +37,10 @@ const StyledDay = styled(PickersDay, {
 function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [calendarView, setCalendarView] = useState('day');
+  // Internal date for calendar navigation (year/month selection)
+  const [displayDate, setDisplayDate] = useState(() => dayjs(selectedDate));
+  // Use ref to track view synchronously since onViewChange fires after onChange
+  const viewRef = useRef('day');
 
   const open = Boolean(anchorEl);
 
@@ -52,23 +56,40 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
         maxDate: dayjs(),
       };
     }
+    
+    // Create a sorted copy to find min and max correctly regardless of input order
+    const sortedDates = [...availableDates].sort();
     return {
-      minDate: dayjs(availableDates[0]),
-      maxDate: dayjs(availableDates[availableDates.length - 1]),
+      minDate: dayjs(sortedDates[0]),
+      maxDate: dayjs(sortedDates[sortedDates.length - 1]),
     };
   }, [availableDates]);
 
   const handleClick = (event) => {
+    setDisplayDate(dayjs(selectedDate));
     setAnchorEl(event.currentTarget);
   };
 
   const handleClose = () => {
     setAnchorEl(null);
     setCalendarView('day');
+    viewRef.current = 'day';
+  };
+
+  const handleViewChange = (newView) => {
+    viewRef.current = newView;
+    setCalendarView(newView);
   };
 
   const handleDateChange = (newDate) => {
     if (!newDate || !dayjs.isDayjs(newDate)) return;
+
+    // Always update display date for navigation
+    setDisplayDate(newDate);
+
+    // Only commit selection when in day view (actual day click)
+    // viewRef is used because onViewChange fires after onChange
+    if (viewRef.current !== 'day') return;
 
     const dateString = newDate.format('YYYY-MM-DD');
     if (availableDatesSet.has(dateString)) {
@@ -137,13 +158,13 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
           </Typography>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DateCalendar
-              value={dayjs(selectedDate)}
+              value={displayDate}
               onChange={handleDateChange}
               minDate={minDate}
               maxDate={maxDate}
               views={['year', 'month', 'day']}
               view={calendarView}
-              onViewChange={setCalendarView}
+              onViewChange={handleViewChange}
               openTo="day"
               slots={{ day: CustomDay }}
             />
