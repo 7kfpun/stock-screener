@@ -272,6 +272,47 @@ export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
   // Store all laid out tiles for keyboard navigation
   const allTilesRef = useRef([]);
 
+  // Compute all sector layouts for rendering and keyboard navigation
+  const sectorLayouts = useMemo(() => {
+    const isNoGroup = groupBy === 'none';
+    const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const sectorWidth = 1200;
+
+    let allTiles = [];
+    const layouts = sectors.map((sector, sectorIndex) => {
+      const sectorHeight = isNoGroup
+        ? windowHeight - 340
+        : Math.max(200, (windowHeight - 340) / sectors.length - 8);
+
+      const layout = sizeBy === 'monoSize'
+        ? gridLayout(sector.stocks, sectorWidth, sectorHeight)
+        : squarify(sector.stocks, 0, 0, sectorWidth, sectorHeight);
+
+      const verticalOffset = sectors.slice(0, sectorIndex).reduce((offset) => {
+        const prevHeight = isNoGroup
+          ? windowHeight - 340
+          : Math.max(200, (windowHeight - 340) / sectors.length - 8);
+        return offset + prevHeight + 8;
+      }, 0);
+
+      const adjustedLayout = layout.map(tile => ({
+        ...tile,
+        y: tile.y + verticalOffset,
+        sectorName: sector.name
+      }));
+      allTiles.push(...adjustedLayout);
+
+      return { sector, layout, sectorHeight, sectorWidth, isNoGroup };
+    });
+
+    return { layouts, allTiles };
+  }, [sectors, groupBy, sizeBy]);
+
+  // Sync computed tiles to ref for keyboard navigation
+  useEffect(() => {
+    allTilesRef.current = sectorLayouts.allTiles;
+  }, [sectorLayouts.allTiles]);
+
   // Keyboard navigation for heatmap (2D navigation)
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -446,40 +487,7 @@ export default function HeatmapView({ data, onStockSelect, selectedTicker }) {
           minHeight: 0,
         }}
       >
-        {sectors.map((sector, sectorIndex) => {
-          // Calculate treemap layout for this sector
-          const isNoGroup = groupBy === 'none';
-          // For no group, use almost all available space; for sectors, divide space equally
-          const sectorHeight = isNoGroup
-            ? window.innerHeight - 340 // Full height minus headers
-            : Math.max(200, (window.innerHeight - 340) / sectors.length - 8); // Divide by number of sectors
-          const sectorWidth = 1200; // Approximate container width
-          const layout = sizeBy === 'monoSize'
-            ? gridLayout(sector.stocks, sectorWidth, sectorHeight)
-            : squarify(sector.stocks, 0, 0, sectorWidth, sectorHeight);
-
-          // Store tiles for keyboard navigation
-          if (sectorIndex === 0) {
-            allTilesRef.current = [];
-          }
-
-          // Calculate vertical offset for this sector (sum of all previous sector heights + gaps)
-          const verticalOffset = sectors.slice(0, sectorIndex).reduce((offset) => {
-            const prevHeight = isNoGroup
-              ? window.innerHeight - 340
-              : Math.max(200, (window.innerHeight - 340) / sectors.length - 8);
-            // Add sector height + gap between sectors (mb: 1 = ~8px in MUI default spacing)
-            return offset + prevHeight + 8;
-          }, 0);
-
-          // Add this sector's tiles with adjusted y-coordinates to the global list
-          const adjustedLayout = layout.map(tile => ({
-            ...tile,
-            y: tile.y + verticalOffset,
-            sectorName: sector.name
-          }));
-          allTilesRef.current.push(...adjustedLayout);
-
+        {sectorLayouts.layouts.map(({ sector, layout, sectorHeight, sectorWidth, isNoGroup }) => {
           return (
             <Box key={sector.name} sx={{ mb: 1, position: 'relative' }}>
               {/* Sector label - hide for "All Stocks" in no group mode */}

@@ -163,8 +163,9 @@ function AppView() {
         (b.Investor_Score || 0) - (a.Investor_Score || 0)
       )[0];
       if (topStock) {
-        setSelectedTicker(topStock.Ticker);
         hasAutoSelected.current = true;
+        // Defer state update to avoid synchronous setState in effect
+        queueMicrotask(() => setSelectedTicker(topStock.Ticker));
       }
     }
   }, [stocks, selectedTicker, isMobile]);
