@@ -1,0 +1,36 @@
+{
+  "date": "2026-01-16",
+  "updated_at": "2026-01-16T22:00:00Z",
+  "top_stocks": [
+    {
+      "ticker": "EXEL",
+      "description": "Exelixis Inc is a multi-platform cancer company specializing in the discovery, development, and commercialization of small molecule therapies for oncology treatment. The company is focused on becoming a top-5 solid tumor oncology company through multiple franchises in renal cell carcinoma, neuroendocrine tumors, and colorectal cancer.",
+      "latest_news": "Exelixis announced preliminary 2025 results and strong 2026 financial guidance with total revenue projected at $2.53-2.63 billion. The company is executing a multi-franchise strategy with cabozantinib maintaining its leading position as the number one TKI monotherapy in RCC, and zanzalintinib building toward becoming a second major franchise.",
+      "why_selected": "Strong fundamentals with P/E of 18.51 (below market average), ROE of 30.56% indicating efficient capital deployment, and ROA of 23.44%. Positive earnings metrics (EPS This Year and Next Year both positive) with consistent 5-year sales growth. Excellent liquidity profile with current ratio of 3.75 supports R&D investments of $875-925 million planned for 2026."
+    },
+    {
+      "ticker": "MU",
+      "description": "Micron Technology Inc is a global leader in memory and storage products, manufacturing DRAM, NAND flash, and other semiconductor memory components. The company is critical infrastructure for data centers, cloud computing, AI systems, and consumer electronics.",
+      "latest_news": "Micron reported record Q1 FY2026 revenue of $13.6B (+57% YoY) with cloud memory segment revenue hitting $5.3B (+100% YoY). The company announced 2026 HBM capacity is fully booked, with plans to expand production significantly. Lifted fiscal 2026 capex guidance to $20 billion to support capacity expansion.",
+      "why_selected": "Exceptional growth story with 72.41% RSI indicating strong momentum and price at 186% of 52-week low. P/E of 34.48 justified by strong ROE of 22.55% and ROA of 15.13%. Market positioning benefits from structural DRAM shortage lasting through end of 2026, with only 50-66% of core customer demand being met. Strong 2.8862 P/FCF with 20% planned bit growth in 2026."
+    },
+    {
+      "ticker": "KGC",
+      "description": "Kinross Gold Corp is a major gold mining company with operations across multiple continents. The company focuses on safe, sustainable gold mining and is committed to reducing environmental impact while maximizing shareholder value through exploration and operational excellence.",
+      "latest_news": "Kinross announced January 15, 2026 that it is proceeding with construction of three organic growth projects (Round Mountain Phase X, Bald Mountain Redbird 2, and Kettle River-Curlew) that will add 3 million ounces of production. The company achieved record free cash flow of $700M in Q3 2025 and increased dividend by 17%.",
+      "why_selected": "Attractive valuation with P/E of 23.49 and strong profitability metrics: ROE of 24.09%, ROA of 15.37%, and 27.3% profit margin. High RSI of 77.1 with strong positive recent performance (+1.23% change). P/S ratio of 6.31 reflects solid pricing power. Capital-efficient growth strategy with $4.1B incremental NPV at $4,300/oz and 55% combined IRR across three new projects."
+    },
+    {
+      "ticker": "NVDA",
+      "description": "NVIDIA Corp is the world's leading AI and graphics processing semiconductor company, designing GPUs and systems for data centers, cloud computing, AI training/inference, and consumer gaming. The company is central to the global AI infrastructure buildout.",
+      "latest_news": "NVIDIA launched its next-generation Vera Rubin AI supercomputer platform at CES 2026, featuring six chips designed for agentic AI and advanced reasoning models. The company has visibility to $500 billion in Blackwell and Rubin revenue through end of 2026. Cloud providers AWS, Google Cloud, Microsoft, and OCI will deploy Vera Rubin-based instances in H2 2026.",
+      "why_selected": "Exceptional profitability with ROE of 107.36% and ROA of 77.15%, the highest among the top 5 stocks. Strong gross margin of 70.05% and operating margin of 58.84%. Despite high P/E of 46.13, justified by dominant market position in AI chips. Dominant market cap of $4.5 trillion with consistent positive earnings growth and strong 87.76% sales growth."
+    },
+    {
+      "ticker": "NRIM",
+      "description": "Northrim BanCorp Inc is the holding company for Northrim Bank, a community bank headquartered in Anchorage, Alaska. The bank operates 20 branches across Alaska and serves approximately 90% of the state's population with comprehensive personal and commercial banking services.",
+      "latest_news": "Northrim BanCorp announced leadership transition effective January 1, 2026, with longtime Chairman Joe Schierhorn retiring and CEO Mike Huston assuming chairman duties while maintaining his operational role. The company reported strong 2024 results with revenue growing 20.78% YoY to $151.93M and earnings up 45.59% to $36.97M.",
+      "why_selected": "Attractive valuation with lowest P/E of 10.3 among the top 5 stocks, indicating undervaluation relative to peers. Strong ROE of 21.92% and solid dividend yield of 2.21%. Regional banking profile offers stability with focused market presence. Positive earnings momentum (EPS This Year and Next Year positive) with 12.4% EPS next year growth rate."
+    }
+  ]
+}
