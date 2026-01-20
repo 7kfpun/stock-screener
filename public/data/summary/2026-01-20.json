@@ -1,0 +1,36 @@
+{
+  "date": "2026-01-20",
+  "updated_at": "2026-01-20T22:02:00Z",
+  "top_stocks": [
+    {
+      "ticker": "EXEL",
+      "description": "Exelixis Inc is a biopharmaceutical company focused on cancer treatment, offering CABOMETYX for advanced renal cell carcinoma and COMETRIQ for medullary thyroid cancer. The company is building a second commercial franchise with zanzalintinib, a novel tyrosine kinase inhibitor targeting VEGF receptors, MET, and TAM kinases.",
+      "latest_news": "Announced preliminary FY2025 results with strong 2026 guidance: revenue projected at $2.53-$2.63B and R&D expenses below estimates at $875-$925M. The company outlined 2026 as a significant year for clinical, regulatory, and commercial progress with zanzalintinib development advancing the pipeline.",
+      "why_selected": "Exceptional value with P/E of 18.43 and strong ROE of 30.56%, combined with a perfect Investor Score of 100. The company shows positive EPS across all timeframes (past 5 years, current, and next 5 years) with solid ROIC of 29.01%, indicating efficient capital deployment and strong profitability metrics that justify the top ranking."
+    },
+    {
+      "ticker": "MU",
+      "description": "Micron Technology Inc is a leading global provider of high-performance memory and storage solutions (DRAM and NAND). The company is a core supplier to NVIDIA for HBM (High Bandwidth Memory) used in AI accelerators, deeply integrated into the AI infrastructure supply chain.",
+      "latest_news": "Fully booked its entire 2026 HBM capacity as AI-driven demand accelerates. Company reported record revenue and margin expansion, with unprecedented memory shortage expected to persist beyond 2026. Fiscal 2026 revenues projected to grow 89.3% YoY with EPS growth of 278.3%, and capital expenditure forecast increased to $20B for HBM4 ramp-up.",
+      "why_selected": "Despite higher P/E of 34.7, MU demonstrates exceptional growth potential with the memory supercycle in full swing. RSI at 72.86 indicates strong momentum, and with positive EPS trends across all periods plus solid ROIC of 16.85%, the stock is benefiting from structural tailwinds in AI infrastructure demand with fully booked capacity."
+    },
+    {
+      "ticker": "KGC",
+      "description": "Kinross Gold Corp is a leading Canadian gold mining company with operations across North America, West Africa, and Brazil. The company is advancing three organic growth projects: Round Mountain Phase X and Bald Mountain Redbird 2 in Nevada, and Kettle River-Curlew in Washington.",
+      "latest_news": "Proceeding with construction of three major organic growth projects expected to contribute 3 million ounces of production, enhance grades, and extend mine lives. By 2026, the company plans to increase renewable energy deployment at West African and Brazilian operations and achieve full digital integration of mine operations for enhanced decision-making and cost reduction.",
+      "why_selected": "Outstanding value play with low P/E of 25.51 combined with solid ROE of 24.09% and ROIC of 19.09%. Trading near 52-week high with strong RSI at 84.07, price well above SMA50 and SMA200, indicating bullish momentum. Positive EPS across all timeframes with analyst consensus price target of $30.56 (8.4% upside) drives selection."
+    },
+    {
+      "ticker": "APH",
+      "description": "Amphenol Corp is a global leader in high-technology interconnect, sensor, and antenna solutions serving automotive, aerospace, defense, industrial, IT, telecommunications, and mobile markets. The company commands 33% market share in AI datacom segment and is the essential architect of high-speed pathways for generative AI infrastructure.",
+      "latest_news": "Stock surged to all-time high of $147.07 with market cap approaching $180B. Completed transformational $10.5B acquisition of CommScope's Connectivity and Cable Solutions business (expected to generate $4.1B in 2026 sales). Positioned as the silent engine of the AI revolution with rising cloud infrastructure and AI workload demands.",
+      "why_selected": "Premium valuation with P/E of 50.78 justified by strategic positioning in AI datacom boom. Strong fundamentals with ROE of 34.78% and ROIC of 19.45% show efficient capital deployment. Despite recent corrections, company maintains positive EPS across all timeframes with 21.4% projected earnings growth in 2026 (from $3.29 to $4.00 per share)."
+    },
+    {
+      "ticker": "NRIM",
+      "description": "Northrim Bancorp Inc is an Alaska-based bank holding company providing commercial banking, home mortgage lending, and specialty finance services. The company operates Northrim Bank with expanding balance sheet featuring deposits of $2.91B and loans of $2.20B.",
+      "latest_news": "Q3 2025 earnings beat analyst estimates with EPS of $0.72 (vs $0.62 expected) and revenue of $66.59M (vs $50.60M expected). Board declared regular quarterly cash dividend of $0.16 per share. Robust metrics: 4.83% net interest margin, adjusted ROA of 1.99%, and adjusted ROE of 21.34% reflecting strong profitability in the regional banking space.",
+      "why_selected": "Exceptional value with lowest P/E of 10.14 among top 5 stocks combined with strong ROE of 21.92%. Despite smaller market cap of $629M, fundamentals are solid with positive EPS across all timeframes. Analyst average price target of $33.00 (16% upside) and robust bank metrics (4.83% NIM, 21.34% adjusted ROE) justify inclusion in screened portfolio."
+    }
+  ]
+}
