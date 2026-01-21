@@ -42,7 +42,13 @@ jobs:
           if python scripts/is_market_open.py; then
             echo "skip=false" >> $GITHUB_OUTPUT
           else
-            echo "skip=true" >> $GITHUB_OUTPUT
+            # If manually triggered, don't skip even when market is closed
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "Manual trigger detected - proceeding despite market being closed"
+              echo "skip=false" >> $GITHUB_OUTPUT
+            else
+              echo "skip=true" >> $GITHUB_OUTPUT
+            fi
           fi
 
       - name: Run stock screener
