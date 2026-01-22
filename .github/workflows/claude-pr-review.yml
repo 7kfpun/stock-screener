@@ -1,4 +1,4 @@
-name: Claude PR Review and Auto-Merge
+name: OpenRouter PR Review and Auto-Merge
 
 on:
   pull_request:
@@ -15,11 +15,11 @@ permissions:
   checks: read
 
 jobs:
-  claude-review:
-    # Run on: automated PRs with label OR manual /claude-review comment
+  openrouter-review:
+    # Run on: automated PRs with label OR manual /review comment
     if: |
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'automated')) ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/claude-review'))
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/review'))
     timeout-minutes: 15
     runs-on: ubuntu-latest
 
@@ -57,92 +57,26 @@ jobs:
           ref: ${{ steps.pr-details.outputs.pr_ref }}
           fetch-depth: 0
 
-      - name: Claude Code Review
-        uses: anthropics/claude-code-action@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            Review this automated daily stock data update PR and generate stock summaries.
+          node-version: '20'
 
-            **Your tasks:**
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
 
-            1. **Verify the changes:**
-               - Only CSV files in `public/data/` should be modified
-               - Data format is consistent with previous updates
-               - No unexpected files were modified
-               - dates.csv was properly updated
-               - latest.csv matches the dated CSV file
-
-            2. **Generate and save stock summaries:**
-               - Read the dated CSV file to get the first 5 tickers
-               - Use web search to research each company thoroughly
-
-               For each ticker, provide:
-               - Company description (what they do, their market position)
-               - Latest news (recent significant developments, earnings, announcements)
-               - Why selected (analyze the CSV metrics - P/E, ROE, growth rates, etc. - and explain what makes this stock stand out)
-
-               - Extract the date from the CSV filename (e.g., "2026-01-07.csv" -> "2026-01-07")
-               - Create a JSON file with this structure (NO duplicate CSV data - only NEW insights):
-                 {
-                   "date": "YYYY-MM-DD",
-                   "updated_at": "ISO timestamp",
-                   "top_stocks": [
-                     {
-                       "ticker": "TICKER",
-                       "description": "What the company does and their market position",
-                       "latest_news": "Recent significant news or developments",
-                       "why_selected": "Analysis of key metrics from CSV (P/E, ROE, growth, etc.) explaining why this stock ranks highly"
-                     }
-                   ]
-                 }
-
-               - Save to: public/data/summary/{date}.json (where {date} is the date from the CSV filename, e.g., "2026-01-08")
-               - Save to: public/data/summary/latest.json (latest copy)
-               - IMPORTANT: After saving the files, you MUST commit and push them:
-                 * First ensure directory exists: mkdir -p public/data/summary
-                 * Stage the files: git add public/data/summary/
-                 * Commit with message: git commit -m "data: add stock summaries for YYYY-MM-DD" (use the actual date)
-                 * Push to remote: git push
-                 * Verify the commit succeeded with: git log -1 --oneline
-
-            3. **Post your review:**
-               - Add a comment with:
-                 - ✅ Verification summary (what you checked)
-                 - 📊 Top 5 Stocks section with descriptions
-                 - 💾 Confirmation that summary files were saved
-               - If everything looks good: Approve the PR
-               - If there are issues: Request changes and explain what's wrong
-
-            **Example comment format:**
-            ```
-            ✅ **Verification Complete**
-            - CSV files updated correctly
-            - Data format consistent
-            - No unexpected changes
-
-            📊 **Top 5 Stocks Analysis**
-
-            **TICKER** - Company Name
-            - **What they do**: Brief description of business
-            - **Latest news**: Recent significant developments
-            - **Why it stands out**: Analysis of key metrics (e.g., "Strong ROE of 30% with consistent growth")
-
-            **TICKER** - Company Name
-            - **What they do**: Brief description of business
-            - **Latest news**: Recent significant developments
-            - **Why it stands out**: Analysis of key metrics
-
-            ...
-
-            💾 **Summary Files**
-            - Saved to public/data/summary/YYYY-MM-DD.json
-            - Updated public/data/summary/latest.json
-            ```
-          claude_args: |
-            --model claude-haiku-4-5
-            --allowedTools "Read,Write,WebSearch,Bash(gh pr:*),Bash(git:*)"
+      - name: OpenRouter PR Review
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr-details.outputs.pr_number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/openrouter-pr-review.js
+          node scripts/openrouter-pr-review.js
 
       - name: Wait for checks
         if: steps.pr-details.outputs.is_automated == 'true'
@@ -170,7 +104,7 @@ jobs:
         run: |
           PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
 
-          # Check if Claude approved the PR
+          # Check if bot approved the PR
           APPROVALS=$(gh pr view $PR_NUMBER --json reviews -q '[.reviews[] | select(.state == "APPROVED")] | length')
 
           if [ "$APPROVALS" -gt 0 ]; then

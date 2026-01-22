@@ -104,7 +104,7 @@ jobs:
           - Updated \`public/data/dates.csv\`
 
           ## Automation
-          This PR will be automatically reviewed by claude-code-action, which will:
+          This PR will be automatically reviewed by OpenRouter API, which will:
           - Verify all changes are correct
           - Generate stock summaries and save to \`public/data/summary/\`
           - Commit summary files to this PR
