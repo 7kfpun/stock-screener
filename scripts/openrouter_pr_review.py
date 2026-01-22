@@ -28,8 +28,8 @@ class OpenRouterPRReviewer:
             print("Error: Missing required environment variables", file=sys.stderr)
             sys.exit(1)
 
-    def call_openrouter(self, messages: List[Dict], model: str = "anthropic/claude-3.5-haiku") -> str:
-        """Make API call to OpenRouter"""
+    def call_openrouter(self, messages: List[Dict], model: str = "anthropic/claude-haiku-4.5", use_web_search: bool = True) -> str:
+        """Make API call to OpenRouter with web search enabled"""
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -42,6 +42,12 @@ class OpenRouterPRReviewer:
             "messages": messages,
             "max_tokens": 4096,
         }
+
+        # Enable web search for real-time information
+        if use_web_search:
+            data["tools"] = [{
+                "type": "web_search"
+            }]
 
         try:
             response = requests.post(url, headers=headers, json=data, timeout=60)
@@ -115,7 +121,7 @@ class OpenRouterPRReviewer:
             return None, []
 
     def analyze_stock(self, ticker_data: Dict) -> str:
-        """Analyze a single stock using OpenRouter"""
+        """Analyze a single stock using OpenRouter with web search"""
         ticker = ticker_data['ticker']
         name = ticker_data['name']
         pe = ticker_data['pe']
@@ -123,16 +129,20 @@ class OpenRouterPRReviewer:
 
         print(f"Analyzing {ticker}...", file=sys.stderr)
 
+        # Get current date for latest information
+        current_date = datetime.now().strftime("%Y-%m-%d")
+
         messages = [
             {
                 "role": "user",
-                "content": f"""Provide a brief analysis of {ticker} ({name}):
+                "content": f"""Search the web and provide a brief analysis of {ticker} ({name}) as of {current_date}:
 
 1. Company description (2-3 sentences about what they do and market position)
-2. Latest news (recent developments, earnings, announcements from 2026)
+2. Latest news (recent developments, earnings, announcements - focus on the most recent information)
 3. Why this stock is notable based on metrics like P/E: {pe}, ROE: {roe}%
 
-Keep it concise and factual. Focus on investment-relevant information.
+Use web search to find the most recent and accurate information. Keep it concise and factual. Focus on investment-relevant information.
+
 Format as:
 **Description:** ...
 **Latest News:** ...
@@ -141,7 +151,8 @@ Format as:
         ]
 
         try:
-            analysis = self.call_openrouter(messages)
+            # Enable web search for real-time stock information
+            analysis = self.call_openrouter(messages, use_web_search=True)
             return analysis
         except Exception as e:
             print(f"Error analyzing {ticker}: {e}", file=sys.stderr)
