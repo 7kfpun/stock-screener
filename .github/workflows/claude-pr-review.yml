@@ -57,10 +57,15 @@ jobs:
           ref: ${{ steps.pr-details.outputs.pr_ref }}
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '20'
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r scripts/requirements.txt
 
       - name: Configure Git
         run: |
@@ -75,8 +80,8 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          chmod +x scripts/openrouter-pr-review.js
-          node scripts/openrouter-pr-review.js
+          chmod +x scripts/openrouter_pr_review.py
+          python scripts/openrouter_pr_review.py
 
       - name: Wait for checks
         if: steps.pr-details.outputs.is_automated == 'true'
