@@ -207,7 +207,10 @@ Format as:
             print("Committed and pushed summary files", file=sys.stderr)
             return True
         except subprocess.CalledProcessError as e:
-            print(f"Error committing files: {e}", file=sys.stderr)
+            print(f"Warning: Failed to commit/push files: {e}", file=sys.stderr)
+            return False
+        except Exception as e:
+            print(f"Warning: Unexpected error committing files: {type(e).__name__}: {e}", file=sys.stderr)
             return False
 
     def post_pr_comment(self, comment: str) -> bool:
@@ -220,9 +223,16 @@ Format as:
                 check=True
             )
             print("Posted comment to PR", file=sys.stderr)
+            print(f"https://github.com/{self.repo}/pull/{self.pr_number}", file=sys.stderr)
             return True
+        except FileNotFoundError:
+            print("Error: gh CLI not found", file=sys.stderr)
+            return False
         except subprocess.CalledProcessError as e:
             print(f"Error posting comment: {e}", file=sys.stderr)
+            return False
+        except Exception as e:
+            print(f"Error: Unexpected error posting comment: {type(e).__name__}: {e}", file=sys.stderr)
             return False
 
     def approve_pr(self) -> bool:
@@ -235,8 +245,14 @@ Format as:
             )
             print("Approved PR", file=sys.stderr)
             return True
+        except FileNotFoundError:
+            print("Warning: gh CLI not found, skipping approval", file=sys.stderr)
+            return False
         except subprocess.CalledProcessError as e:
-            print(f"Error approving PR: {e}", file=sys.stderr)
+            print(f"Warning: Failed to approve PR (this is expected if GitHub Actions bot cannot self-approve): {e}", file=sys.stderr)
+            return False
+        except Exception as e:
+            print(f"Warning: Unexpected error approving PR: {type(e).__name__}: {e}", file=sys.stderr)
             return False
 
     def format_comment(self, stock_analyses: List[Dict], date: str) -> str:
