@@ -329,11 +329,7 @@ Requirements:
         """Main review process"""
         print("Starting OpenRouter PR Review...", file=sys.stderr)
 
-        # Step 1: Get PR changes
-        _, files = self.get_pr_changes()
-        print(f"Files changed: {', '.join(files)}", file=sys.stderr)
-
-        # Step 2: Get top 5 tickers
+        # Step 1: Get top 5 tickers
         date, tickers = self.get_top_tickers()
         if not date or not tickers:
             self.post_pr_comment("❌ **Error**: Could not extract ticker data from CSV")
@@ -341,7 +337,7 @@ Requirements:
 
         print(f"Analyzing top {len(tickers)} tickers for {date}", file=sys.stderr)
 
-        # Step 4: Analyze each ticker
+        # Step 2: Analyze each ticker
         stock_analyses = []
         for ticker_data in tickers:
             analysis = self.analyze_stock(ticker_data)
@@ -351,12 +347,12 @@ Requirements:
                 'analysis': analysis,
             })
 
-        # Step 5: Save summaries
+        # Step 3: Save summaries
         if not self.save_summaries(date, stock_analyses):
             self.post_pr_comment("❌ **Error**: Failed to save summary files")
             sys.exit(1)
 
-        # Step 6: Commit and push
+        # Step 4: Commit and push
         if not self.commit_and_push(date):
             self.post_pr_comment("⚠️ **Warning**: Failed to commit summary files")
 
