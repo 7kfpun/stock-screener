@@ -103,16 +103,27 @@ class OpenRouterPRReviewer:
                 print("Error: CSV file is empty or has no data", file=sys.stderr)
                 return None, []
 
+            # Parse header to find column indices
+            header = lines[0].strip().split('\t')
+            try:
+                ticker_idx = header.index('Ticker')
+                company_idx = header.index('Company')
+                pe_idx = header.index('P/E')
+                roe_idx = header.index('ROE')
+            except ValueError as e:
+                print(f"Error: Missing expected column in CSV header: {e}", file=sys.stderr)
+                return None, []
+
             # Parse top 5 tickers (skip header)
             tickers = []
             for line in lines[1:6]:
-                cols = line.strip().split(',')
-                if len(cols) >= 4:
+                cols = line.strip().split('\t')
+                if len(cols) > max(ticker_idx, company_idx, pe_idx, roe_idx):
                     tickers.append({
-                        'ticker': cols[0].strip(),
-                        'name': cols[1].strip() if len(cols) > 1 else '',
-                        'pe': cols[2].strip() if len(cols) > 2 else '',
-                        'roe': cols[3].strip() if len(cols) > 3 else '',
+                        'ticker': cols[ticker_idx].strip(),
+                        'name': cols[company_idx].strip(),
+                        'pe': cols[pe_idx].strip(),
+                        'roe': cols[roe_idx].strip(),
                     })
 
             return date, tickers
