@@ -29,7 +29,7 @@ class OpenRouterPRReviewer:
             sys.exit(1)
 
     def call_openrouter(self, messages: List[Dict]) -> str:
-        """Make API call to OpenRouter with Perplexity Sonar Pro for web search"""
+        """Make API call to OpenRouter with Claude Haiku 4.5 + web search"""
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -39,12 +39,9 @@ class OpenRouterPRReviewer:
         }
 
         data = {
-            "model": "perplexity/sonar-pro-search",
+            "model": "anthropic/claude-haiku-4.5:online",
             "messages": messages,
             "max_tokens": 4096,
-            "web_search_options": {
-                "search_context_size": "high"
-            },
         }
 
         try:
