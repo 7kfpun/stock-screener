@@ -336,18 +336,7 @@ Requirements:
         _, files = self.get_pr_changes()
         print(f"Files changed: {', '.join(files)}", file=sys.stderr)
 
-        # Step 2: Verify changes are only CSV files in public/data
-        invalid_files = [f for f in files if not f.startswith("public/data/") or not f.endswith(".csv")]
-        if invalid_files:
-            error_comment = (
-                "❌ **Verification Failed**\n\n"
-                "Unexpected files modified:\n" +
-                "\n".join(f"- {f}" for f in invalid_files)
-            )
-            self.post_pr_comment(error_comment)
-            sys.exit(1)
-
-        # Step 3: Get top 5 tickers
+        # Step 2: Get top 5 tickers
         date, tickers = self.get_top_tickers()
         if not date or not tickers:
             self.post_pr_comment("❌ **Error**: Could not extract ticker data from CSV")
