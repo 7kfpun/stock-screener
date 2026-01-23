@@ -8,7 +8,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -52,25 +52,6 @@ class OpenRouterPRReviewer:
         except requests.exceptions.RequestException as e:
             print(f"Error calling OpenRouter API: {e}", file=sys.stderr)
             raise
-
-    def get_pr_changes(self) -> tuple[str, List[str]]:
-        """Get PR file changes"""
-        try:
-            diff = subprocess.check_output(
-                ["git", "diff", "origin/main...HEAD"],
-                encoding="utf-8",
-                stderr=subprocess.DEVNULL
-            )
-            files = subprocess.check_output(
-                ["git", "diff", "--name-only", "origin/main...HEAD"],
-                encoding="utf-8",
-                stderr=subprocess.DEVNULL
-            ).strip().split("\n")
-            files = [f for f in files if f]
-            return diff, files
-        except subprocess.CalledProcessError as e:
-            print(f"Error getting PR changes: {e}", file=sys.stderr)
-            return "", []
 
     def get_top_tickers(self) -> tuple[Optional[str], List[Dict]]:
         """Read CSV file and get top 5 tickers"""
@@ -197,7 +178,7 @@ Requirements:
         """Generate and save summary JSON files"""
         summary_data = {
             "date": date,
-            "updated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "top_stocks": [
                 {
                     "ticker": stock['ticker'],
@@ -293,11 +274,6 @@ Requirements:
     def format_comment(self, stock_analyses: List[Dict], date: str) -> str:
         """Format PR comment with analysis"""
         comment_parts = [
-            "✅ **Verification Complete**",
-            "- CSV files updated correctly",
-            "- Data format consistent",
-            "- No unexpected changes",
-            "",
             f"📊 **Top {len(stock_analyses)} Stocks Analysis**",
             ""
         ]
@@ -329,11 +305,7 @@ Requirements:
         """Main review process"""
         print("Starting OpenRouter PR Review...", file=sys.stderr)
 
-        # Step 1: Get PR changes
-        _, files = self.get_pr_changes()
-        print(f"Files changed: {', '.join(files)}", file=sys.stderr)
-
-        # Step 2: Get top 5 tickers
+        # Step 1: Get top 5 tickers
         date, tickers = self.get_top_tickers()
         if not date or not tickers:
             self.post_pr_comment("❌ **Error**: Could not extract ticker data from CSV")
@@ -341,7 +313,7 @@ Requirements:
 
         print(f"Analyzing top {len(tickers)} tickers for {date}", file=sys.stderr)
 
-        # Step 4: Analyze each ticker
+        # Step 2: Analyze each ticker
         stock_analyses = []
         for ticker_data in tickers:
             analysis = self.analyze_stock(ticker_data)
@@ -351,20 +323,20 @@ Requirements:
                 'analysis': analysis,
             })
 
-        # Step 5: Save summaries
+        # Step 3: Save summaries
         if not self.save_summaries(date, stock_analyses):
             self.post_pr_comment("❌ **Error**: Failed to save summary files")
             sys.exit(1)
 
-        # Step 6: Commit and push
+        # Step 4: Commit and push
         if not self.commit_and_push(date):
             self.post_pr_comment("⚠️ **Warning**: Failed to commit summary files")
 
-        # Step 7: Post PR comment
+        # Step 5: Post PR comment
         comment = self.format_comment(stock_analyses, date)
         self.post_pr_comment(comment)
 
-        # Step 8: Approve PR
+        # Step 6: Approve PR
         self.approve_pr()
 
         print("PR review completed successfully!", file=sys.stderr)
