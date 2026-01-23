@@ -53,25 +53,6 @@ class OpenRouterPRReviewer:
             print(f"Error calling OpenRouter API: {e}", file=sys.stderr)
             raise
 
-    def get_pr_changes(self) -> tuple[str, List[str]]:
-        """Get PR file changes"""
-        try:
-            diff = subprocess.check_output(
-                ["git", "diff", "origin/main...HEAD"],
-                encoding="utf-8",
-                stderr=subprocess.DEVNULL
-            )
-            files = subprocess.check_output(
-                ["git", "diff", "--name-only", "origin/main...HEAD"],
-                encoding="utf-8",
-                stderr=subprocess.DEVNULL
-            ).strip().split("\n")
-            files = [f for f in files if f]
-            return diff, files
-        except subprocess.CalledProcessError as e:
-            print(f"Error getting PR changes: {e}", file=sys.stderr)
-            return "", []
-
     def get_top_tickers(self) -> tuple[Optional[str], List[Dict]]:
         """Read CSV file and get top 5 tickers"""
         try:
@@ -293,11 +274,6 @@ Requirements:
     def format_comment(self, stock_analyses: List[Dict], date: str) -> str:
         """Format PR comment with analysis"""
         comment_parts = [
-            "✅ **Verification Complete**",
-            "- CSV files updated correctly",
-            "- Data format consistent",
-            "- No unexpected changes",
-            "",
             f"📊 **Top {len(stock_analyses)} Stocks Analysis**",
             ""
         ]
@@ -356,11 +332,11 @@ Requirements:
         if not self.commit_and_push(date):
             self.post_pr_comment("⚠️ **Warning**: Failed to commit summary files")
 
-        # Step 7: Post PR comment
+        # Step 5: Post PR comment
         comment = self.format_comment(stock_analyses, date)
         self.post_pr_comment(comment)
 
-        # Step 8: Approve PR
+        # Step 6: Approve PR
         self.approve_pr()
 
         print("PR review completed successfully!", file=sys.stderr)
