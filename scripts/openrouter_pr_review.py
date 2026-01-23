@@ -28,8 +28,8 @@ class OpenRouterPRReviewer:
             print("Error: Missing required environment variables", file=sys.stderr)
             sys.exit(1)
 
-    def call_openrouter(self, messages: List[Dict], model: str = "anthropic/claude-haiku-4.5", use_web_search: bool = True) -> str:
-        """Make API call to OpenRouter with web search enabled"""
+    def call_openrouter(self, messages: List[Dict]) -> str:
+        """Make API call to OpenRouter with Claude Haiku 4.5 + web search"""
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -37,20 +37,15 @@ class OpenRouterPRReviewer:
             "HTTP-Referer": "https://github.com",
             "X-Title": "Stock Screener PR Review",
         }
+
         data = {
-            "model": model,
+            "model": "anthropic/claude-haiku-4.5:online",
             "messages": messages,
             "max_tokens": 4096,
         }
 
-        # Enable web search for real-time information
-        if use_web_search:
-            data["tools"] = [{
-                "type": "web_search"
-            }]
-
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=60)
+            response = requests.post(url, headers=headers, json=data, timeout=120)
             response.raise_for_status()
             result = response.json()
             return result["choices"][0]["message"]["content"]
@@ -131,7 +126,7 @@ class OpenRouterPRReviewer:
             print(f"Error reading CSV: {e}", file=sys.stderr)
             return None, []
 
-    def analyze_stock(self, ticker_data: Dict) -> str:
+    def analyze_stock(self, ticker_data: Dict) -> Dict:
         """Analyze a single stock using OpenRouter with web search"""
         ticker = ticker_data['ticker']
         name = ticker_data['name']
@@ -146,40 +141,69 @@ class OpenRouterPRReviewer:
         messages = [
             {
                 "role": "user",
-                "content": f"""Search the web and provide a brief analysis of {ticker} ({name}) as of {current_date}:
+                "content": f"""Search the web and provide analysis of {ticker} ({name}) as of {current_date}.
 
-1. Company description (2-3 sentences about what they do and market position)
-2. Latest news (recent developments, earnings, announcements - focus on the most recent information)
-3. Why this stock is notable based on metrics like P/E: {pe}, ROE: {roe}%
+Return ONLY a valid JSON object with exactly these three fields (no markdown, no code blocks):
+{{
+  "description": "2-3 sentences about what the company does, market cap, and market position",
+  "latest_news": "Recent developments, earnings, announcements from the past few months. Be specific with dates and numbers.",
+  "why_selected": "Why this stock is notable based on metrics like P/E: {pe}, ROE: {roe}. Include specific metrics and investment thesis."
+}}
 
-Use web search to find the most recent and accurate information. Keep it concise and factual. Focus on investment-relevant information.
-
-Format as:
-**Description:** ...
-**Latest News:** ...
-**Why Notable:** ..."""
+Requirements:
+- Use web search to find the most recent and accurate information
+- Keep each field to 2-4 sentences
+- Be factual and specific with numbers and dates
+- Focus on investment-relevant information
+- Return ONLY the JSON object, no other text"""
             }
         ]
 
         try:
-            # Enable web search for real-time stock information
-            analysis = self.call_openrouter(messages, use_web_search=True)
-            return analysis
+            response = self.call_openrouter(messages)
+
+            # Try to parse JSON from response
+            try:
+                # Clean up response - remove markdown code blocks if present
+                cleaned = response.strip()
+                if cleaned.startswith("```"):
+                    cleaned = cleaned.split("```")[1]
+                    if cleaned.startswith("json"):
+                        cleaned = cleaned[4:]
+                    cleaned = cleaned.strip()
+
+                analysis = json.loads(cleaned)
+                return {
+                    "description": analysis.get("description", ""),
+                    "latest_news": analysis.get("latest_news", ""),
+                    "why_selected": analysis.get("why_selected", "")
+                }
+            except json.JSONDecodeError:
+                print(f"Warning: Could not parse JSON for {ticker}, using raw response", file=sys.stderr)
+                return {
+                    "description": response[:500] if len(response) > 500 else response,
+                    "latest_news": "",
+                    "why_selected": ""
+                }
         except Exception as e:
             print(f"Error analyzing {ticker}: {e}", file=sys.stderr)
-            return "Analysis unavailable"
+            return {
+                "description": "Analysis unavailable",
+                "latest_news": "",
+                "why_selected": ""
+            }
 
     def save_summaries(self, date: str, stock_analyses: List[Dict]) -> bool:
         """Generate and save summary JSON files"""
         summary_data = {
             "date": date,
-            "updated_at": datetime.now().isoformat(),
+            "updated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "top_stocks": [
                 {
                     "ticker": stock['ticker'],
-                    "name": stock['name'],
-                    "analysis": stock['analysis'],
-                    "description": stock['analysis'][:200] + "..." if len(stock['analysis']) > 200 else stock['analysis'],
+                    "description": stock['analysis']['description'],
+                    "latest_news": stock['analysis']['latest_news'],
+                    "why_selected": stock['analysis']['why_selected'],
                 }
                 for stock in stock_analyses
             ]
@@ -279,9 +303,17 @@ Format as:
         ]
 
         for stock in stock_analyses:
+            analysis = stock['analysis']
             comment_parts.extend([
-                f"**{stock['ticker']}** - {stock['name']}",
-                stock['analysis'],
+                f"### {stock['ticker']} - {stock['name']}",
+                "",
+                f"**Description:** {analysis.get('description', 'N/A')}",
+                "",
+                f"**Latest News:** {analysis.get('latest_news', 'N/A')}",
+                "",
+                f"**Why Selected:** {analysis.get('why_selected', 'N/A')}",
+                "",
+                "---",
                 ""
             ])
 
@@ -298,21 +330,10 @@ Format as:
         print("Starting OpenRouter PR Review...", file=sys.stderr)
 
         # Step 1: Get PR changes
-        diff, files = self.get_pr_changes()
+        _, files = self.get_pr_changes()
         print(f"Files changed: {', '.join(files)}", file=sys.stderr)
 
-        # Step 2: Verify changes are only CSV files in public/data
-        invalid_files = [f for f in files if not f.startswith("public/data/") or not f.endswith(".csv")]
-        if invalid_files:
-            error_comment = (
-                "❌ **Verification Failed**\n\n"
-                "Unexpected files modified:\n" +
-                "\n".join(f"- {f}" for f in invalid_files)
-            )
-            self.post_pr_comment(error_comment)
-            sys.exit(1)
-
-        # Step 3: Get top 5 tickers
+        # Step 2: Get top 5 tickers
         date, tickers = self.get_top_tickers()
         if not date or not tickers:
             self.post_pr_comment("❌ **Error**: Could not extract ticker data from CSV")

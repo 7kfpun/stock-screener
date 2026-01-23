@@ -16,9 +16,10 @@ permissions:
 
 jobs:
   openrouter-review:
-    # Run on: automated PRs with label OR manual /review comment
+    # TODO: Restore label check after testing
+    # Run on: all PRs (temporary) OR manual /review comment
     if: |
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'automated')) ||
+      (github.event_name == 'pull_request') ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/review'))
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -83,40 +84,32 @@ jobs:
           chmod +x scripts/openrouter_pr_review.py
           python scripts/openrouter_pr_review.py
 
-      - name: Wait for checks
-        if: steps.pr-details.outputs.is_automated == 'true'
-        run: |
-          echo "Waiting for all checks to complete..."
-          sleep 30
-
-          # Check if PR checks workflow passed
-          PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
-
-          # Get the latest status of checks
-          CHECKS_STATUS=$(gh pr checks $PR_NUMBER --json state -q '.[].state' || echo "")
-
-          if echo "$CHECKS_STATUS" | grep -q "FAILURE\|ERROR"; then
-            echo "Some checks failed. Will not auto-merge."
-            exit 1
-          fi
-
-          echo "All checks passed or pending. Proceeding with merge."
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Auto-merge PR
-        if: steps.pr-details.outputs.is_automated == 'true'
-        run: |
-          PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
-
-          # Check if bot approved the PR
-          APPROVALS=$(gh pr view $PR_NUMBER --json reviews -q '[.reviews[] | select(.state == "APPROVED")] | length')
-
-          if [ "$APPROVALS" -gt 0 ]; then
-            echo "PR has been approved. Merging..."
-            gh pr merge $PR_NUMBER --squash --auto --delete-branch
-          else
-            echo "PR not approved yet. Skipping auto-merge."
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # TODO: Re-enable auto-merge after testing
+      # - name: Wait for checks
+      #   if: steps.pr-details.outputs.is_automated == 'true'
+      #   run: |
+      #     echo "Waiting for all checks to complete..."
+      #     sleep 30
+      #     PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
+      #     CHECKS_STATUS=$(gh pr checks $PR_NUMBER --json state -q '.[].state' || echo "")
+      #     if echo "$CHECKS_STATUS" | grep -q "FAILURE\|ERROR"; then
+      #       echo "Some checks failed. Will not auto-merge."
+      #       exit 1
+      #     fi
+      #     echo "All checks passed or pending. Proceeding with merge."
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #
+      # - name: Auto-merge PR
+      #   if: steps.pr-details.outputs.is_automated == 'true'
+      #   run: |
+      #     PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
+      #     APPROVALS=$(gh pr view $PR_NUMBER --json reviews -q '[.reviews[] | select(.state == "APPROVED")] | length')
+      #     if [ "$APPROVALS" -gt 0 ]; then
+      #       echo "PR has been approved. Merging..."
+      #       gh pr merge $PR_NUMBER --squash --auto --delete-branch
+      #     else
+      #       echo "PR not approved yet. Skipping auto-merge."
+      #     fi
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
