@@ -20,6 +20,40 @@ import requests
 class OpenRouterPRReviewer:
     """Handles PR review using OpenRouter API"""
 
+    # API Configuration
+    API_URL = "https://openrouter.ai/api/v1/chat/completions"
+    MODEL_NAME = "anthropic/claude-haiku-4.5:online"
+    MAX_TOKENS = 4096
+    REQUEST_TIMEOUT = 120
+
+    # CSV Column Configuration
+    REQUIRED_COLUMNS = [
+        'Ticker', 'Company', 'P/E', 'PEG', 'ROE', 'ROIC',
+        'Profit M', 'EPS This Y', 'EPS Next Y', 'EPS Next 5Y',
+        'Market Cap', 'Investor_Score', 'SMA50', 'SMA200',
+        '52W High', '52W Low'
+    ]
+
+    # Mapping from CSV columns to dict keys
+    COLUMN_MAPPING = {
+        'Ticker': 'ticker',
+        'Company': 'name',
+        'P/E': 'pe',
+        'PEG': 'peg',
+        'ROE': 'roe',
+        'ROIC': 'roic',
+        'Profit M': 'profit_margin',
+        'EPS This Y': 'eps_this_y',
+        'EPS Next Y': 'eps_next_y',
+        'EPS Next 5Y': 'eps_next_5y',
+        'Market Cap': 'market_cap',
+        'Investor_Score': 'investor_score',
+        'SMA50': 'sma50',
+        'SMA200': 'sma200',
+        '52W High': 'high_52w',
+        '52W Low': 'low_52w',
+    }
+
     def __init__(self):
         self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
         self.github_token = os.getenv("GITHUB_TOKEN")
@@ -39,9 +73,29 @@ class OpenRouterPRReviewer:
         text = re.sub(r'</?cite[^>]*>', '', text)
         return text.strip()
 
+    @staticmethod
+    def safe_str(value, default: str = 'N/A') -> str:
+        """Safely convert value to string, handling NaN values"""
+        return str(value) if pd.notna(value) else default
+
+    def row_to_dict(self, row: pd.Series) -> Dict[str, str]:
+        """Convert pandas row to dict using column mapping"""
+        return {
+            dict_key: self.safe_str(row[csv_col], default='' if csv_col in ['Ticker', 'Company'] else 'N/A')
+            for csv_col, dict_key in self.COLUMN_MAPPING.items()
+        }
+
+    @staticmethod
+    def create_error_analysis(message: str = "Analysis unavailable") -> Dict[str, str]:
+        """Create error response for failed analysis"""
+        return {
+            "description": message,
+            "latest_news": "",
+            "why_selected": ""
+        }
+
     def call_openrouter(self, messages: List[Dict]) -> str:
         """Make API call to OpenRouter with Claude Haiku 4.5 + web search"""
-        url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.openrouter_api_key}",
@@ -50,21 +104,20 @@ class OpenRouterPRReviewer:
         }
 
         data = {
-            "model": "anthropic/claude-haiku-4.5:online",
+            "model": self.MODEL_NAME,
             "messages": messages,
-            "max_tokens": 4096,
-            "response_format": {
-                "type": "json_object"
-            },
-            "plugins": [
-                {
-                    "id": "response-healing"
-                }
-            ]
+            "max_tokens": self.MAX_TOKENS,
+            "response_format": {"type": "json_object"},
+            "plugins": [{"id": "response-healing"}]
         }
 
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=120)
+            response = requests.post(
+                self.API_URL,
+                headers=headers,
+                json=data,
+                timeout=self.REQUEST_TIMEOUT
+            )
             response.raise_for_status()
             result = response.json()
             return result["choices"][0]["message"]["content"]
@@ -97,81 +150,29 @@ class OpenRouterPRReviewer:
                 print("Error: CSV file is empty", file=sys.stderr)
                 return None, []
 
-            # Define required columns
-            required_columns = [
-                'Ticker', 'Company', 'P/E', 'PEG', 'ROE', 'ROIC',
-                'Profit M', 'EPS This Y', 'EPS Next Y', 'EPS Next 5Y',
-                'Market Cap', 'Investor_Score', 'SMA50', 'SMA200',
-                '52W High', '52W Low'
-            ]
-
             # Validate required columns exist
-            missing_cols = set(required_columns) - set(df.columns)
+            missing_cols = set(self.REQUIRED_COLUMNS) - set(df.columns)
             if missing_cols:
                 print(f"Error: Missing required columns: {missing_cols}", file=sys.stderr)
                 return None, []
 
-            # Get top 5 rows
-            top_5 = df.head(5)
-
-            # Convert to list of dicts with proper key mapping
-            tickers = []
-            for _, row in top_5.iterrows():
-                tickers.append({
-                    'ticker': str(row['Ticker']) if pd.notna(row['Ticker']) else '',
-                    'name': str(row['Company']) if pd.notna(row['Company']) else '',
-                    'pe': str(row['P/E']) if pd.notna(row['P/E']) else 'N/A',
-                    'peg': str(row['PEG']) if pd.notna(row['PEG']) else 'N/A',
-                    'roe': str(row['ROE']) if pd.notna(row['ROE']) else 'N/A',
-                    'roic': str(row['ROIC']) if pd.notna(row['ROIC']) else 'N/A',
-                    'profit_margin': str(row['Profit M']) if pd.notna(row['Profit M']) else 'N/A',
-                    'eps_this_y': str(row['EPS This Y']) if pd.notna(row['EPS This Y']) else 'N/A',
-                    'eps_next_y': str(row['EPS Next Y']) if pd.notna(row['EPS Next Y']) else 'N/A',
-                    'eps_next_5y': str(row['EPS Next 5Y']) if pd.notna(row['EPS Next 5Y']) else 'N/A',
-                    'market_cap': str(row['Market Cap']) if pd.notna(row['Market Cap']) else 'N/A',
-                    'investor_score': str(row['Investor_Score']) if pd.notna(row['Investor_Score']) else 'N/A',
-                    'sma50': str(row['SMA50']) if pd.notna(row['SMA50']) else 'N/A',
-                    'sma200': str(row['SMA200']) if pd.notna(row['SMA200']) else 'N/A',
-                    'high_52w': str(row['52W High']) if pd.notna(row['52W High']) else 'N/A',
-                    'low_52w': str(row['52W Low']) if pd.notna(row['52W Low']) else 'N/A',
-                })
+            # Get top 5 rows and convert to list of dicts
+            tickers = [self.row_to_dict(row) for _, row in df.head(5).iterrows()]
 
             return date, tickers
         except Exception as e:
             print(f"Error reading CSV: {e}", file=sys.stderr)
             return None, []
 
-    def analyze_stock(self, ticker_data: Dict) -> Dict:
-        """Analyze a single stock using OpenRouter with web search"""
-        ticker = ticker_data['ticker']
-        name = ticker_data['name']
-
-        # Extract comprehensive metrics
-        pe = ticker_data.get('pe', 'N/A')
-        peg = ticker_data.get('peg', 'N/A')
-        roe = ticker_data.get('roe', 'N/A')
-        roic = ticker_data.get('roic', 'N/A')
-        profit_margin = ticker_data.get('profit_margin', 'N/A')
-        eps_this_y = ticker_data.get('eps_this_y', 'N/A')
-        eps_next_y = ticker_data.get('eps_next_y', 'N/A')
-        eps_next_5y = ticker_data.get('eps_next_5y', 'N/A')
-        investor_score = ticker_data.get('investor_score', 'N/A')
-
-        print(f"Analyzing {ticker}...", file=sys.stderr)
-
-        # Get current date for latest information
-        current_date = datetime.now().strftime("%Y-%m-%d")
-
-        messages = [
-            {
-                "role": "user",
-                "content": f"""Search the web and provide analysis of {ticker} ({name}) as of {current_date}.
+    def build_analysis_prompt(self, ticker: str, name: str, metrics: Dict[str, str], current_date: str) -> str:
+        """Build analysis prompt for OpenRouter"""
+        return f"""Search the web and provide analysis of {ticker} ({name}) as of {current_date}.
 
 Return ONLY a valid JSON object with exactly these three fields (no markdown, no code blocks, no citation tags):
 {{
-  "description": "Brief overview in 2-3 bullet points:\n• What the company does and its industry\n• Market cap and size classification\n• Market position or competitive advantage",
-  "latest_news": "Recent developments in bullet points (2-4 items):\n• Specific events with dates and numbers\n• Earnings results or financial updates\n• Strategic announcements or operational changes",
-  "why_selected": "Investment thesis in bullet points based on quality growth investing:\n• Valuation: Comment on P/E ({pe}), PEG ({peg}) - is valuation reasonable?\n• Profitability: Analyze ROE ({roe}%), ROIC ({roic}%), Profit Margin ({profit_margin}%) - are margins strong?\n• Growth: Evaluate EPS growth rates (This Y: {eps_this_y}%, Next Y: {eps_next_y}%, Next 5Y: {eps_next_5y}%) - is growth accelerating?\n• Quality: Overall assessment with Investor Score ({investor_score}/100) and momentum indicators"
+  "description": "Brief overview in 2-3 bullet points:\\n• What the company does and its industry\\n• Market cap and size classification\\n• Market position or competitive advantage",
+  "latest_news": "Recent developments in bullet points (2-4 items):\\n• Specific events with dates and numbers\\n• Earnings results or financial updates\\n• Strategic announcements or operational changes",
+  "why_selected": "Investment thesis in bullet points based on quality growth investing:\\n• Valuation: Comment on P/E ({metrics['pe']}), PEG ({metrics['peg']}) - is valuation reasonable?\\n• Profitability: Analyze ROE ({metrics['roe']}%), ROIC ({metrics['roic']}%), Profit Margin ({metrics['profit_margin']}%) - are margins strong?\\n• Growth: Evaluate EPS growth rates (This Y: {metrics['eps_this_y']}%, Next Y: {metrics['eps_next_y']}%, Next 5Y: {metrics['eps_next_5y']}%) - is growth accelerating?\\n• Quality: Overall assessment with Investor Score ({metrics['investor_score']}/100) and momentum indicators"
 }}
 
 CRITICAL Requirements:
@@ -181,8 +182,30 @@ CRITICAL Requirements:
 - Be factual and specific with numbers and dates
 - Focus on investment-relevant information based on quality growth investing principles
 - Return ONLY the JSON object, no other text"""
-            }
-        ]
+
+    def analyze_stock(self, ticker_data: Dict[str, str]) -> Dict[str, str]:
+        """Analyze a single stock using OpenRouter with web search"""
+        ticker = ticker_data['ticker']
+        name = ticker_data['name']
+
+        print(f"Analyzing {ticker}...", file=sys.stderr)
+
+        # Extract metrics for analysis
+        metrics = {
+            'pe': ticker_data.get('pe', 'N/A'),
+            'peg': ticker_data.get('peg', 'N/A'),
+            'roe': ticker_data.get('roe', 'N/A'),
+            'roic': ticker_data.get('roic', 'N/A'),
+            'profit_margin': ticker_data.get('profit_margin', 'N/A'),
+            'eps_this_y': ticker_data.get('eps_this_y', 'N/A'),
+            'eps_next_y': ticker_data.get('eps_next_y', 'N/A'),
+            'eps_next_5y': ticker_data.get('eps_next_5y', 'N/A'),
+            'investor_score': ticker_data.get('investor_score', 'N/A'),
+        }
+
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        prompt = self.build_analysis_prompt(ticker, name, metrics, current_date)
+        messages = [{"role": "user", "content": prompt}]
 
         try:
             response = self.call_openrouter(messages)
@@ -192,25 +215,16 @@ CRITICAL Requirements:
                 analysis = json.loads(response)
                 # Clean citation tags from all fields
                 return {
-                    "description": self.clean_citations(analysis.get("description", "")),
-                    "latest_news": self.clean_citations(analysis.get("latest_news", "")),
-                    "why_selected": self.clean_citations(analysis.get("why_selected", ""))
+                    key: self.clean_citations(analysis.get(key, ""))
+                    for key in ["description", "latest_news", "why_selected"]
                 }
             except json.JSONDecodeError as e:
                 print(f"Warning: Could not parse JSON for {ticker}: {e}", file=sys.stderr)
                 print(f"Response was: {response[:200]}", file=sys.stderr)
-                return {
-                    "description": "Analysis unavailable - JSON parse error",
-                    "latest_news": "",
-                    "why_selected": ""
-                }
+                return self.create_error_analysis("Analysis unavailable - JSON parse error")
         except Exception as e:
             print(f"Error analyzing {ticker}: {e}", file=sys.stderr)
-            return {
-                "description": "Analysis unavailable",
-                "latest_news": "",
-                "why_selected": ""
-            }
+            return self.create_error_analysis()
 
     def save_summaries(self, date: str, stock_analyses: List[Dict]) -> bool:
         """Generate and save summary JSON files"""
@@ -218,12 +232,7 @@ CRITICAL Requirements:
             "date": date,
             "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "top_stocks": [
-                {
-                    "ticker": stock['ticker'],
-                    "description": stock['analysis']['description'],
-                    "latest_news": stock['analysis']['latest_news'],
-                    "why_selected": stock['analysis']['why_selected'],
-                }
+                {"ticker": stock['ticker'], **stock['analysis']}
                 for stock in stock_analyses
             ]
         }
