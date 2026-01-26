@@ -42,6 +42,14 @@ class OpenRouterPRReviewer:
             "model": "anthropic/claude-haiku-4.5:online",
             "messages": messages,
             "max_tokens": 4096,
+            "response_format": {
+                "type": "json_object"
+            },
+            "plugins": [
+                {
+                    "id": "response-healing"
+                }
+            ]
         }
 
         try:
@@ -85,7 +93,19 @@ class OpenRouterPRReviewer:
                 ticker_idx = header.index('Ticker')
                 company_idx = header.index('Company')
                 pe_idx = header.index('P/E')
+                peg_idx = header.index('PEG')
                 roe_idx = header.index('ROE')
+                roic_idx = header.index('ROIC')
+                profit_m_idx = header.index('Profit M')
+                eps_this_y_idx = header.index('EPS This Y')
+                eps_next_y_idx = header.index('EPS Next Y')
+                eps_next_5y_idx = header.index('EPS Next 5Y')
+                market_cap_idx = header.index('Market Cap')
+                investor_score_idx = header.index('Investor_Score')
+                sma50_idx = header.index('SMA50')
+                sma200_idx = header.index('SMA200')
+                high_52w_idx = header.index('52W High')
+                low_52w_idx = header.index('52W Low')
             except ValueError as e:
                 print(f"Error: Missing expected column in CSV header: {e}", file=sys.stderr)
                 return None, []
@@ -94,12 +114,27 @@ class OpenRouterPRReviewer:
             tickers = []
             for line in lines[1:6]:
                 cols = line.strip().split('\t')
-                if len(cols) > max(ticker_idx, company_idx, pe_idx, roe_idx):
+                if len(cols) > max(ticker_idx, company_idx, pe_idx, peg_idx, roe_idx,
+                                   roic_idx, profit_m_idx, eps_this_y_idx, eps_next_y_idx,
+                                   eps_next_5y_idx, market_cap_idx, investor_score_idx,
+                                   sma50_idx, sma200_idx, high_52w_idx, low_52w_idx):
                     tickers.append({
                         'ticker': cols[ticker_idx].strip(),
                         'name': cols[company_idx].strip(),
                         'pe': cols[pe_idx].strip(),
+                        'peg': cols[peg_idx].strip(),
                         'roe': cols[roe_idx].strip(),
+                        'roic': cols[roic_idx].strip(),
+                        'profit_margin': cols[profit_m_idx].strip(),
+                        'eps_this_y': cols[eps_this_y_idx].strip(),
+                        'eps_next_y': cols[eps_next_y_idx].strip(),
+                        'eps_next_5y': cols[eps_next_5y_idx].strip(),
+                        'market_cap': cols[market_cap_idx].strip(),
+                        'investor_score': cols[investor_score_idx].strip(),
+                        'sma50': cols[sma50_idx].strip(),
+                        'sma200': cols[sma200_idx].strip(),
+                        'high_52w': cols[high_52w_idx].strip(),
+                        'low_52w': cols[low_52w_idx].strip(),
                     })
 
             return date, tickers
@@ -111,8 +146,17 @@ class OpenRouterPRReviewer:
         """Analyze a single stock using OpenRouter with web search"""
         ticker = ticker_data['ticker']
         name = ticker_data['name']
-        pe = ticker_data['pe']
-        roe = ticker_data['roe']
+
+        # Extract comprehensive metrics
+        pe = ticker_data.get('pe', 'N/A')
+        peg = ticker_data.get('peg', 'N/A')
+        roe = ticker_data.get('roe', 'N/A')
+        roic = ticker_data.get('roic', 'N/A')
+        profit_margin = ticker_data.get('profit_margin', 'N/A')
+        eps_this_y = ticker_data.get('eps_this_y', 'N/A')
+        eps_next_y = ticker_data.get('eps_next_y', 'N/A')
+        eps_next_5y = ticker_data.get('eps_next_5y', 'N/A')
+        investor_score = ticker_data.get('investor_score', 'N/A')
 
         print(f"Analyzing {ticker}...", file=sys.stderr)
 
@@ -128,14 +172,15 @@ Return ONLY a valid JSON object with exactly these three fields (no markdown, no
 {{
   "description": "2-3 sentences about what the company does, market cap, and market position",
   "latest_news": "Recent developments, earnings, announcements from the past few months. Be specific with dates and numbers.",
-  "why_selected": "Why this stock is notable based on metrics like P/E: {pe}, ROE: {roe}. Include specific metrics and investment thesis."
+  "why_selected": "Why this stock is selected based on our quality growth investing and momentum analysis philosophy. Reference specific metrics: P/E: {pe}, PEG: {peg}, ROE: {roe}%, ROIC: {roic}%, Profit Margin: {profit_margin}%, EPS Growth This Y: {eps_this_y}%, EPS Growth Next Y: {eps_next_y}%, EPS Growth Next 5Y: {eps_next_5y}%, Investor Score: {investor_score}/100. Explain the investment thesis based on valuation efficiency, profitability, growth potential, and momentum."
 }}
 
 Requirements:
 - Use web search to find the most recent and accurate information
 - Keep each field to 2-4 sentences
 - Be factual and specific with numbers and dates
-- Focus on investment-relevant information
+- Focus on investment-relevant information based on quality growth investing principles
+- In why_selected, explain how the metrics demonstrate: (1) reasonable valuation (PEG), (2) profitability (ROE, ROIC, Profit Margin), (3) growth potential (EPS growth rates), and (4) overall quality (Investor Score)
 - Return ONLY the JSON object, no other text"""
             }
         ]
@@ -143,26 +188,19 @@ Requirements:
         try:
             response = self.call_openrouter(messages)
 
-            # Try to parse JSON from response
+            # Parse JSON response (response-healing ensures valid JSON)
             try:
-                # Clean up response - remove markdown code blocks if present
-                cleaned = response.strip()
-                if cleaned.startswith("```"):
-                    cleaned = cleaned.split("```")[1]
-                    if cleaned.startswith("json"):
-                        cleaned = cleaned[4:]
-                    cleaned = cleaned.strip()
-
-                analysis = json.loads(cleaned)
+                analysis = json.loads(response)
                 return {
                     "description": analysis.get("description", ""),
                     "latest_news": analysis.get("latest_news", ""),
                     "why_selected": analysis.get("why_selected", "")
                 }
-            except json.JSONDecodeError:
-                print(f"Warning: Could not parse JSON for {ticker}, using raw response", file=sys.stderr)
+            except json.JSONDecodeError as e:
+                print(f"Warning: Could not parse JSON for {ticker}: {e}", file=sys.stderr)
+                print(f"Response was: {response[:200]}", file=sys.stderr)
                 return {
-                    "description": response[:500] if len(response) > 500 else response,
+                    "description": "Analysis unavailable - JSON parse error",
                     "latest_news": "",
                     "why_selected": ""
                 }
