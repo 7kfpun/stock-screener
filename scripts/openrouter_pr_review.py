@@ -22,7 +22,7 @@ class OpenRouterPRReviewer:
 
     # API Configuration
     API_URL = "https://openrouter.ai/api/v1/chat/completions"
-    MODEL_NAME = "anthropic/claude-haiku-4.5:online"
+    DEFAULT_MODEL_NAME = "anthropic/claude-haiku-4.5:online"
     MAX_TOKENS = 4096
     REQUEST_TIMEOUT = 120
 
@@ -59,10 +59,13 @@ class OpenRouterPRReviewer:
         self.github_token = os.getenv("GITHUB_TOKEN")
         self.pr_number = os.getenv("PR_NUMBER")
         self.repo = os.getenv("GITHUB_REPOSITORY")
+        self.model_name = os.getenv("OPENROUTER_MODEL", self.DEFAULT_MODEL_NAME)
 
         if not all([self.openrouter_api_key, self.github_token, self.pr_number, self.repo]):
             print("Error: Missing required environment variables", file=sys.stderr)
             sys.exit(1)
+
+        print(f"Using OpenRouter model: {self.model_name}", file=sys.stderr)
 
     @staticmethod
     def clean_citations(text: str) -> str:
@@ -95,7 +98,7 @@ class OpenRouterPRReviewer:
         }
 
     def call_openrouter(self, messages: List[Dict]) -> str:
-        """Make API call to OpenRouter with Claude Haiku 4.5 + web search"""
+        """Make API call to OpenRouter with configured model + web search"""
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.openrouter_api_key}",
@@ -104,7 +107,7 @@ class OpenRouterPRReviewer:
         }
 
         data = {
-            "model": self.MODEL_NAME,
+            "model": self.model_name,
             "messages": messages,
             "max_tokens": self.MAX_TOKENS,
             "response_format": {"type": "json_object"},

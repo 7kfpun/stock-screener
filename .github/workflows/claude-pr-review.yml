@@ -81,6 +81,8 @@ jobs:
           PR_NUMBER: ${{ steps.pr-details.outputs.pr_number }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional: Override default model (defaults to anthropic/claude-haiku-4.5:online)
+          # OPENROUTER_MODEL: anthropic/claude-sonnet-4.5
         run: |
           chmod +x scripts/openrouter_pr_review.py
           python scripts/openrouter_pr_review.py
