@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import pandas as pd
 import requests
 
 
@@ -72,7 +73,7 @@ class OpenRouterPRReviewer:
             raise
 
     def get_top_tickers(self) -> tuple[Optional[str], List[Dict]]:
-        """Read CSV file and get top 5 tickers"""
+        """Read CSV file and get top 5 tickers using pandas"""
         try:
             data_dir = Path("public/data")
             if not data_dir.exists():
@@ -89,63 +90,51 @@ class OpenRouterPRReviewer:
             dated_csv = sorted(csv_files)[-1]
             date = dated_csv.stem
 
-            # Read CSV
-            with open(dated_csv, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
+            # Read CSV with pandas
+            df = pd.read_csv(dated_csv, sep='\t')
 
-            if len(lines) < 2:
-                print("Error: CSV file is empty or has no data", file=sys.stderr)
+            if df.empty:
+                print("Error: CSV file is empty", file=sys.stderr)
                 return None, []
 
-            # Parse header to find column indices
-            header = lines[0].strip().split('\t')
-            try:
-                ticker_idx = header.index('Ticker')
-                company_idx = header.index('Company')
-                pe_idx = header.index('P/E')
-                peg_idx = header.index('PEG')
-                roe_idx = header.index('ROE')
-                roic_idx = header.index('ROIC')
-                profit_m_idx = header.index('Profit M')
-                eps_this_y_idx = header.index('EPS This Y')
-                eps_next_y_idx = header.index('EPS Next Y')
-                eps_next_5y_idx = header.index('EPS Next 5Y')
-                market_cap_idx = header.index('Market Cap')
-                investor_score_idx = header.index('Investor_Score')
-                sma50_idx = header.index('SMA50')
-                sma200_idx = header.index('SMA200')
-                high_52w_idx = header.index('52W High')
-                low_52w_idx = header.index('52W Low')
-            except ValueError as e:
-                print(f"Error: Missing expected column in CSV header: {e}", file=sys.stderr)
+            # Define required columns
+            required_columns = [
+                'Ticker', 'Company', 'P/E', 'PEG', 'ROE', 'ROIC',
+                'Profit M', 'EPS This Y', 'EPS Next Y', 'EPS Next 5Y',
+                'Market Cap', 'Investor_Score', 'SMA50', 'SMA200',
+                '52W High', '52W Low'
+            ]
+
+            # Validate required columns exist
+            missing_cols = set(required_columns) - set(df.columns)
+            if missing_cols:
+                print(f"Error: Missing required columns: {missing_cols}", file=sys.stderr)
                 return None, []
 
-            # Parse top 5 tickers (skip header)
+            # Get top 5 rows
+            top_5 = df.head(5)
+
+            # Convert to list of dicts with proper key mapping
             tickers = []
-            for line in lines[1:6]:
-                cols = line.strip().split('\t')
-                if len(cols) > max(ticker_idx, company_idx, pe_idx, peg_idx, roe_idx,
-                                   roic_idx, profit_m_idx, eps_this_y_idx, eps_next_y_idx,
-                                   eps_next_5y_idx, market_cap_idx, investor_score_idx,
-                                   sma50_idx, sma200_idx, high_52w_idx, low_52w_idx):
-                    tickers.append({
-                        'ticker': cols[ticker_idx].strip(),
-                        'name': cols[company_idx].strip(),
-                        'pe': cols[pe_idx].strip(),
-                        'peg': cols[peg_idx].strip(),
-                        'roe': cols[roe_idx].strip(),
-                        'roic': cols[roic_idx].strip(),
-                        'profit_margin': cols[profit_m_idx].strip(),
-                        'eps_this_y': cols[eps_this_y_idx].strip(),
-                        'eps_next_y': cols[eps_next_y_idx].strip(),
-                        'eps_next_5y': cols[eps_next_5y_idx].strip(),
-                        'market_cap': cols[market_cap_idx].strip(),
-                        'investor_score': cols[investor_score_idx].strip(),
-                        'sma50': cols[sma50_idx].strip(),
-                        'sma200': cols[sma200_idx].strip(),
-                        'high_52w': cols[high_52w_idx].strip(),
-                        'low_52w': cols[low_52w_idx].strip(),
-                    })
+            for _, row in top_5.iterrows():
+                tickers.append({
+                    'ticker': str(row['Ticker']) if pd.notna(row['Ticker']) else '',
+                    'name': str(row['Company']) if pd.notna(row['Company']) else '',
+                    'pe': str(row['P/E']) if pd.notna(row['P/E']) else 'N/A',
+                    'peg': str(row['PEG']) if pd.notna(row['PEG']) else 'N/A',
+                    'roe': str(row['ROE']) if pd.notna(row['ROE']) else 'N/A',
+                    'roic': str(row['ROIC']) if pd.notna(row['ROIC']) else 'N/A',
+                    'profit_margin': str(row['Profit M']) if pd.notna(row['Profit M']) else 'N/A',
+                    'eps_this_y': str(row['EPS This Y']) if pd.notna(row['EPS This Y']) else 'N/A',
+                    'eps_next_y': str(row['EPS Next Y']) if pd.notna(row['EPS Next Y']) else 'N/A',
+                    'eps_next_5y': str(row['EPS Next 5Y']) if pd.notna(row['EPS Next 5Y']) else 'N/A',
+                    'market_cap': str(row['Market Cap']) if pd.notna(row['Market Cap']) else 'N/A',
+                    'investor_score': str(row['Investor_Score']) if pd.notna(row['Investor_Score']) else 'N/A',
+                    'sma50': str(row['SMA50']) if pd.notna(row['SMA50']) else 'N/A',
+                    'sma200': str(row['SMA200']) if pd.notna(row['SMA200']) else 'N/A',
+                    'high_52w': str(row['52W High']) if pd.notna(row['52W High']) else 'N/A',
+                    'low_52w': str(row['52W Low']) if pd.notna(row['52W Low']) else 'N/A',
+                })
 
             return date, tickers
         except Exception as e:
