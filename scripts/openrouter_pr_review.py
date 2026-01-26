@@ -6,6 +6,7 @@ Replaces claude-code-action with OpenRouter API for automated PR reviews
 
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -27,6 +28,15 @@ class OpenRouterPRReviewer:
         if not all([self.openrouter_api_key, self.github_token, self.pr_number, self.repo]):
             print("Error: Missing required environment variables", file=sys.stderr)
             sys.exit(1)
+
+    @staticmethod
+    def clean_citations(text: str) -> str:
+        """Remove citation tags from LLM response"""
+        # Remove <cite index="...">...</cite> tags but keep the content
+        text = re.sub(r'<cite[^>]*>(.*?)</cite>', r'\1', text)
+        # Remove any remaining standalone cite tags
+        text = re.sub(r'</?cite[^>]*>', '', text)
+        return text.strip()
 
     def call_openrouter(self, messages: List[Dict]) -> str:
         """Make API call to OpenRouter with Claude Haiku 4.5 + web search"""
@@ -168,19 +178,19 @@ class OpenRouterPRReviewer:
                 "role": "user",
                 "content": f"""Search the web and provide analysis of {ticker} ({name}) as of {current_date}.
 
-Return ONLY a valid JSON object with exactly these three fields (no markdown, no code blocks):
+Return ONLY a valid JSON object with exactly these three fields (no markdown, no code blocks, no citation tags):
 {{
-  "description": "2-3 sentences about what the company does, market cap, and market position",
-  "latest_news": "Recent developments, earnings, announcements from the past few months. Be specific with dates and numbers.",
-  "why_selected": "Why this stock is selected based on our quality growth investing and momentum analysis philosophy. Reference specific metrics: P/E: {pe}, PEG: {peg}, ROE: {roe}%, ROIC: {roic}%, Profit Margin: {profit_margin}%, EPS Growth This Y: {eps_this_y}%, EPS Growth Next Y: {eps_next_y}%, EPS Growth Next 5Y: {eps_next_5y}%, Investor Score: {investor_score}/100. Explain the investment thesis based on valuation efficiency, profitability, growth potential, and momentum."
+  "description": "Brief overview in 2-3 bullet points:\n• What the company does and its industry\n• Market cap and size classification\n• Market position or competitive advantage",
+  "latest_news": "Recent developments in bullet points (2-4 items):\n• Specific events with dates and numbers\n• Earnings results or financial updates\n• Strategic announcements or operational changes",
+  "why_selected": "Investment thesis in bullet points based on quality growth investing:\n• Valuation: Comment on P/E ({pe}), PEG ({peg}) - is valuation reasonable?\n• Profitability: Analyze ROE ({roe}%), ROIC ({roic}%), Profit Margin ({profit_margin}%) - are margins strong?\n• Growth: Evaluate EPS growth rates (This Y: {eps_this_y}%, Next Y: {eps_next_y}%, Next 5Y: {eps_next_5y}%) - is growth accelerating?\n• Quality: Overall assessment with Investor Score ({investor_score}/100) and momentum indicators"
 }}
 
-Requirements:
+CRITICAL Requirements:
+- DO NOT include any <cite> tags, citation markers, or source references in the output
+- Use bullet points (•) for better readability
 - Use web search to find the most recent and accurate information
-- Keep each field to 2-4 sentences
 - Be factual and specific with numbers and dates
 - Focus on investment-relevant information based on quality growth investing principles
-- In why_selected, explain how the metrics demonstrate: (1) reasonable valuation (PEG), (2) profitability (ROE, ROIC, Profit Margin), (3) growth potential (EPS growth rates), and (4) overall quality (Investor Score)
 - Return ONLY the JSON object, no other text"""
             }
         ]
@@ -191,10 +201,11 @@ Requirements:
             # Parse JSON response (response-healing ensures valid JSON)
             try:
                 analysis = json.loads(response)
+                # Clean citation tags from all fields
                 return {
-                    "description": analysis.get("description", ""),
-                    "latest_news": analysis.get("latest_news", ""),
-                    "why_selected": analysis.get("why_selected", "")
+                    "description": self.clean_citations(analysis.get("description", "")),
+                    "latest_news": self.clean_citations(analysis.get("latest_news", "")),
+                    "why_selected": self.clean_citations(analysis.get("why_selected", ""))
                 }
             except json.JSONDecodeError as e:
                 print(f"Warning: Could not parse JSON for {ticker}: {e}", file=sys.stderr)
