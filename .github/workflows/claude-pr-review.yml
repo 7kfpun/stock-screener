@@ -76,7 +76,7 @@ jobs:
 
       - name: OpenRouter PR Review
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr-details.outputs.pr_number }}
           GITHUB_REPOSITORY: ${{ github.repository }}
