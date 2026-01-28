@@ -312,7 +312,7 @@ function AppView() {
                 <ToggleButton value="heatmap">
                   <GridViewIcon sx={{ mr: 1 }} />
                   Heatmap
-                  <Box component="span" sx={{ ml: 0.5, px: 0.5, py: 0.1, fontSize: '0.6rem', fontWeight: 700, bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 0.5, lineHeight: 1.2 }}>
+                  <Box component="span" sx={{ ml: 0.5, px: 0.4, py: 0, fontSize: '0.5rem', fontWeight: 700, bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 0.5, lineHeight: 1.2 }}>
                     Beta
                   </Box>
                 </ToggleButton>
