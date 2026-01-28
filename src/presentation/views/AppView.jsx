@@ -24,6 +24,7 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
+import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
 import { useStockData } from '../../application/useStockData.js';
 import TableView from '../components/TableView.jsx';
 import HeatmapView from '../components/HeatmapView.jsx';
@@ -232,7 +233,47 @@ function AppView() {
                   Methodology
                 </Typography>
               </Box>
-              <IconButton onClick={toggleTheme} color="primary" size="small" title={`Theme: ${themeMode}`}>
+              <Box
+                component="a"
+                href="https://forms.gle/tz1gKFyGeVDvyZ4RA"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 1.5,
+                  py: 0.5,
+                  bgcolor: 'secondary.main',
+                  color: 'white',
+                  borderRadius: 1,
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    bgcolor: 'secondary.dark',
+                    transform: 'translateY(-1px)',
+                    boxShadow: 2,
+                  },
+                }}
+              >
+                <FeedbackOutlinedIcon fontSize="small" />
+                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                  Feedback
+                </Typography>
+              </Box>
+              <IconButton
+                onClick={toggleTheme}
+                color="primary"
+                title={`Theme: ${themeMode}`}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                }}
+              >
                 {themeMode === 'auto' && <SettingsBrightnessIcon />}
                 {themeMode === 'dark' && <DarkModeIcon />}
                 {themeMode === 'light' && <LightModeIcon />}
