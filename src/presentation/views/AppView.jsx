@@ -201,8 +201,8 @@ function AppView() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="xl" sx={{ py: 2, height: '100vh', overflow: 'hidden' }}>
-        <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2 }}>
+      <Container maxWidth="xl" sx={{ py: 2, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2, flexShrink: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>
               Stock Screener
@@ -312,7 +312,7 @@ function AppView() {
                 <ToggleButton value="heatmap">
                   <GridViewIcon sx={{ mr: 1 }} />
                   Heatmap
-                  <Box component="span" sx={{ ml: 0.5, px: 0.5, py: 0.1, fontSize: '0.6rem', fontWeight: 700, bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 0.5, lineHeight: 1.2 }}>
+                  <Box component="span" sx={{ ml: 0.5, px: 0.4, py: 0, fontSize: '0.5rem', fontWeight: 700, bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 0.5, lineHeight: 1.2 }}>
                     Beta
                   </Box>
                 </ToggleButton>
@@ -339,7 +339,7 @@ function AppView() {
         )}
 
         {!loading && !error && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: 'calc(100vh - 200px)' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, flexGrow: 1, minHeight: 0 }}>
 
             {/* Daily Summary Section Removed as per request */}
 
@@ -384,7 +384,7 @@ function AppView() {
 
         {/* Disclaimer - bottom of screen */}
         {!loading && !error && (
-          <Box sx={{ pt: 0.5, pb: 1.5, px: 1, textAlign: 'center' }}>
+          <Box sx={{ pt: 0.5, pb: 1.5, px: 1, textAlign: 'center', flexShrink: 0 }}>
             <Typography
               sx={{
                 color: 'text.secondary',
