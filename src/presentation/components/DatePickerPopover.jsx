@@ -123,13 +123,15 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
         onClick={handleClick}
         sx={{
           px: 1.5,
-          py: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 1,
           cursor: 'pointer',
           minWidth: 120,
-          textAlign: 'center',
+          height: 40,
           '&:hover': {
             borderColor: 'primary.main',
             bgcolor: 'action.hover',
