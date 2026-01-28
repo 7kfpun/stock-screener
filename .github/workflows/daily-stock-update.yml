@@ -2,9 +2,9 @@ name: Daily Stock Data Update
 
 on:
   schedule:
-    # Runs at 10pm UTC = ~5-6pm ET (after NYSE close at 4pm ET)
+    # Runs at 10:15pm UTC = ~5-6pm ET (after NYSE close at 4pm ET)
     # Monday-Friday UTC (handles Friday ET even when it's Saturday HKT)
-    - cron: "0 22 * * 1-5"
+    - cron: "15 22 * * 1-5"
   workflow_dispatch: # Allow manual trigger
 
 permissions:

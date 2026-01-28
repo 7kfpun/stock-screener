@@ -283,6 +283,9 @@ function AppView() {
                 <ToggleButton value="heatmap">
                   <GridViewIcon sx={{ mr: 1 }} />
                   Heatmap
+                  <Box component="span" sx={{ ml: 0.5, px: 0.5, py: 0.1, fontSize: '0.6rem', fontWeight: 700, bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 0.5, lineHeight: 1.2 }}>
+                    Beta
+                  </Box>
                 </ToggleButton>
               </ToggleButtonGroup>
 
@@ -348,6 +351,18 @@ function AppView() {
             onClose={() => setSelectedTicker(null)}
             isMobile={true}
           />
+        )}
+
+        {/* Disclaimer - bottom of screen */}
+        {!loading && !error && (
+          <Box sx={{ py: 1, px: 2, textAlign: 'center' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.4 }}>
+              <Box component="span" sx={{ fontWeight: 700, color: 'warning.main' }}>⚠️ IMPORTANT DISCLAIMER: </Box>
+              This screener is for informational and educational purposes only. It does not constitute investment advice,
+              financial advice, or a recommendation to buy or sell any securities. Past performance does not guarantee future results.
+              Always consult with a qualified financial advisor before making investment decisions.
+            </Typography>
+          </Box>
         )}
 
         <Dialog
@@ -535,18 +550,6 @@ function AppView() {
               </Box>
             </Box>
 
-            {/* Disclaimer */}
-            <Box sx={{ p: 2, bgcolor: actualTheme === 'dark' ? 'rgba(255, 193, 7, 0.1)' : 'rgba(255, 193, 7, 0.05)', borderRadius: 2, border: '1px solid', borderColor: 'warning.main' }}>
-              <Typography variant="caption" sx={{ display: 'block', mb: 1, fontWeight: 700, color: 'warning.main' }}>
-                ⚠️ IMPORTANT DISCLAIMER
-              </Typography>
-              <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.6, color: 'text.secondary' }}>
-                This screener is for informational and educational purposes only. It does not constitute investment advice,
-                financial advice, or a recommendation to buy or sell any securities. Past performance does not guarantee future results.
-                All investments carry risk, including the potential loss of principal. Always consult with a qualified financial
-                advisor before making investment decisions.
-              </Typography>
-            </Box>
           </DialogContent>
         </Dialog>
       </Container>
