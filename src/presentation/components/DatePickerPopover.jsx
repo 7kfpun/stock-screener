@@ -5,6 +5,7 @@ import {
   Typography,
   styled,
 } from '@mui/material';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -138,6 +139,7 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
           },
         }}
       >
+        <CalendarTodayIcon sx={{ fontSize: 18, mr: 1, color: 'text.secondary' }} />
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
           {selectedDate}
         </Typography>

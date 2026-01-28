@@ -384,12 +384,16 @@ function AppView() {
 
         {/* Disclaimer - bottom of screen */}
         {!loading && !error && (
-          <Box sx={{ py: 1, px: 2, textAlign: 'center' }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.4 }}>
-              <Box component="span" sx={{ fontWeight: 700, color: 'warning.main' }}>⚠️ IMPORTANT DISCLAIMER: </Box>
-              This screener is for informational and educational purposes only. It does not constitute investment advice,
-              financial advice, or a recommendation to buy or sell any securities. Past performance does not guarantee future results.
-              Always consult with a qualified financial advisor before making investment decisions.
+          <Box sx={{ pt: 0.5, pb: 1.5, px: 1, textAlign: 'center' }}>
+            <Typography
+              sx={{
+                color: 'text.secondary',
+                lineHeight: 1.3,
+                fontSize: { xs: '0.65rem', sm: '0.7rem' },
+              }}
+            >
+              <Box component="span" sx={{ fontWeight: 700, color: 'warning.main' }}>⚠️ DISCLAIMER: </Box>
+              For informational purposes only. Not investment advice. Past performance does not guarantee future results. Consult a financial advisor.
             </Typography>
           </Box>
         )}
