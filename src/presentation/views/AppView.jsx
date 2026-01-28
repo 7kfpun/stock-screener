@@ -262,7 +262,18 @@ function AppView() {
                   Feedback
                 </Typography>
               </Box>
-              <IconButton onClick={toggleTheme} color="primary" size="small" title={`Theme: ${themeMode}`}>
+              <IconButton
+                onClick={toggleTheme}
+                color="primary"
+                title={`Theme: ${themeMode}`}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                }}
+              >
                 {themeMode === 'auto' && <SettingsBrightnessIcon />}
                 {themeMode === 'dark' && <DarkModeIcon />}
                 {themeMode === 'light' && <LightModeIcon />}
