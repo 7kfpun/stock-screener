@@ -23,8 +23,9 @@ import {
   Tooltip
 } from 'recharts';
 import { calculateScoreBreakdown } from '../../domain/stock/scoreCalculator';
-import { tooltipFieldGroups } from './StockTooltipConfig';
+import { tooltipFieldGroups, formatSignedPercent } from './StockTooltipConfig';
 import { CountryFlag } from './CountryFlag';
+import { formatPrice } from '../../shared/formatters';
 import { StockPriceChart } from './StockPriceChart';
 
 /**
@@ -52,9 +53,24 @@ export function StockDetailPanel({ stock, summary, onClose, isMobile }) {
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
         <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h6" component="div" sx={{ fontSize: '1.1rem', mb: 0.5 }}>
-            {stock.Ticker}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 0.5 }}>
+            <Typography variant="h5" component="div" sx={{ fontSize: '1.5rem', fontWeight: 700 }}>
+              {stock.Ticker}
+            </Typography>
+            <Typography variant="body1" sx={{ fontSize: '1rem', fontWeight: 500 }}>
+              {formatPrice(stock.Price)}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: stock.Change > 0 ? 'success.main' : stock.Change < 0 ? 'error.main' : 'text.secondary'
+              }}
+            >
+              {formatSignedPercent(stock.Change)}
+            </Typography>
+          </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75, fontSize: '0.8rem' }}>
             {stock.Company}
           </Typography>
@@ -139,11 +155,10 @@ export function StockDetailPanel({ stock, summary, onClose, isMobile }) {
           <Box
             sx={{
               mb: 3,
-              position: 'relative',
               p: 2.5,
               borderRadius: 2,
               border: 0,
-              boxShadow: theme.palette.mode === 'dark' 
+              boxShadow: theme.palette.mode === 'dark'
                 ? '0 0 0 1px rgba(139, 127, 245, 0.3), 0 4px 12px rgba(139, 127, 245, 0.15)'
                 : '0 0 0 1px rgba(139, 127, 245, 0.2), 0 4px 12px rgba(139, 127, 245, 0.1)',
               background: theme.palette.mode === 'dark'
@@ -151,25 +166,7 @@ export function StockDetailPanel({ stock, summary, onClose, isMobile }) {
                 : 'linear-gradient(135deg, rgba(139, 127, 245, 0.08) 0%, rgba(139, 127, 245, 0.02) 100%)',
             }}
           >
-            <Chip 
-              label={`★ Daily Pick: ${summary.date}`}
-              size="small"
-              sx={{
-                position: 'absolute',
-                top: -12,
-                left: 16,
-                fontWeight: 700,
-                bgcolor: 'primary.main',
-                color: 'common.white',
-                border: '2px solid',
-                borderColor: 'background.paper',
-                boxShadow: 2,
-                height: 24,
-                fontSize: '0.75rem',
-              }}
-            />
-            
-            <Typography variant="body1" paragraph sx={{ mt: 1, mb: 2, lineHeight: 1.6 }}>
+            <Typography variant="body1" paragraph sx={{ mb: 2, lineHeight: 1.6 }}>
               {stockSummary.description}
             </Typography>
 
