@@ -1,12 +1,10 @@
 import { useState, useMemo, useRef } from 'react';
 import {
   Popover,
-  IconButton,
   Box,
   Typography,
   styled,
 } from '@mui/material';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -121,19 +119,27 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
 
   return (
     <>
-      <IconButton
+      <Box
         onClick={handleClick}
-        color="primary"
-        size="small"
-        title="Select date from calendar"
         sx={{
+          px: 1.5,
+          py: 0.75,
           border: '1px solid',
-          borderColor: 'primary.main',
+          borderColor: 'divider',
           borderRadius: 1,
+          cursor: 'pointer',
+          minWidth: 120,
+          textAlign: 'center',
+          '&:hover': {
+            borderColor: 'primary.main',
+            bgcolor: 'action.hover',
+          },
         }}
       >
-        <CalendarMonthIcon />
-      </IconButton>
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          {selectedDate}
+        </Typography>
+      </Box>
       <Popover
         open={open}
         anchorEl={anchorEl}

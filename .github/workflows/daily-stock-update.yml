@@ -2,9 +2,11 @@ name: Daily Stock Data Update
 
 on:
   schedule:
-    # Runs at 10pm UTC = ~5-6pm ET (after NYSE close at 4pm ET)
-    # Monday-Friday UTC (handles Friday ET even when it's Saturday HKT)
-    - cron: "0 22 * * 1-5"
+    # Two crons to handle DST — always targets 4:15 PM ET (15m after NYSE close)
+    # EDT (Mar-Nov): 20:15 UTC = 4:15 PM ET
+    - cron: "15 20 * * 1-5"
+    # EST (Nov-Mar): 21:15 UTC = 4:15 PM ET
+    - cron: "15 21 * * 1-5"
   workflow_dispatch: # Allow manual trigger
 
 permissions:
@@ -22,20 +24,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check if correct cron for current DST
+        id: dst_check
+        run: |
+          # Get current ET hour. If it's 4 PM ET (16:xx), this is the right cron.
+          # Otherwise skip (wrong cron for current DST).
+          ET_HOUR=$(TZ='America/New_York' date +%H)
+          if [ "$ET_HOUR" = "16" ]; then
+            echo "Correct time: 4 PM ET"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          else
+            echo "Wrong cron for DST (ET hour is $ET_HOUR, expected 16). Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout repository
+        if: steps.dst_check.outputs.skip != 'true'
         uses: actions/checkout@v6
 
       - name: Set up Python
+        if: steps.dst_check.outputs.skip != 'true'
         uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: "pip"
 
       - name: Install dependencies
+        if: steps.dst_check.outputs.skip != 'true'
         run: |
           pip install -r scripts/requirements.txt
 
       - name: Check if market is open
+        if: steps.dst_check.outputs.skip != 'true'
         id: market_check
         run: |
           # Use Python script with accurate NYSE calendar (includes weekends and all holidays)
@@ -46,7 +66,7 @@ jobs:
           fi
 
       - name: Run stock screener
-        if: steps.market_check.outputs.skip != 'true'
+        if: steps.dst_check.outputs.skip != 'true' && steps.market_check.outputs.skip != 'true'
         run: |
           # Use Eastern Time (NYSE timezone) for consistent date handling
           TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
@@ -54,13 +74,13 @@ jobs:
           python scripts/fin.py > public/data/${TODAY}.csv
 
       - name: Update latest.csv
-        if: steps.market_check.outputs.skip != 'true'
+        if: steps.dst_check.outputs.skip != 'true' && steps.market_check.outputs.skip != 'true'
         run: |
           TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
           cp public/data/${TODAY}.csv public/data/latest.csv
 
       - name: Update dates.csv
-        if: steps.market_check.outputs.skip != 'true'
+        if: steps.dst_check.outputs.skip != 'true' && steps.market_check.outputs.skip != 'true'
         run: |
           TODAY=$(TZ='America/New_York' date +%Y-%m-%d)
           if ! grep -q "^${TODAY}$" public/data/dates.csv; then
@@ -68,7 +88,7 @@ jobs:
           fi
 
       - name: Create Pull Request
-        if: steps.market_check.outputs.skip != 'true'
+        if: steps.dst_check.outputs.skip != 'true' && steps.market_check.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
         run: |
