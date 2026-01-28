@@ -7,9 +7,6 @@ import {
   Box,
   Typography,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
   ToggleButton,
   ToggleButtonGroup,
   CircularProgress,
@@ -255,20 +252,11 @@ function AppView() {
             )}
 
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', ml: 'auto', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <FormControl sx={{ minWidth: 150 }}>
-                  <Select value={selectedDate} onChange={(e) => handleDateChange(e.target.value)} size="small">
-                    {availableDates.map(date => (
-                      <MenuItem key={date} value={date}>{date}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <DatePickerPopover
-                  selectedDate={selectedDate}
-                  availableDates={availableDates}
-                  onDateChange={handleDateChange}
-                />
-              </Box>
+              <DatePickerPopover
+                selectedDate={selectedDate}
+                availableDates={availableDates}
+                onDateChange={handleDateChange}
+              />
 
               <ToggleButtonGroup
                 value={view}
