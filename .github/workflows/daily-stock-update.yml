@@ -2,11 +2,11 @@ name: Daily Stock Data Update
 
 on:
   schedule:
-    # Two crons to handle DST — always targets ~5:15 PM ET (1h15m after NYSE close)
-    # EDT (Mar-Nov): 21:15 UTC = 5:15 PM ET
+    # Two crons to handle DST — always targets 4:15 PM ET (15m after NYSE close)
+    # EDT (Mar-Nov): 20:15 UTC = 4:15 PM ET
+    - cron: "15 20 * * 1-5"
+    # EST (Nov-Mar): 21:15 UTC = 4:15 PM ET
     - cron: "15 21 * * 1-5"
-    # EST (Nov-Mar): 22:15 UTC = 5:15 PM ET
-    - cron: "15 22 * * 1-5"
   workflow_dispatch: # Allow manual trigger
 
 permissions:
@@ -27,14 +27,14 @@ jobs:
       - name: Check if correct cron for current DST
         id: dst_check
         run: |
-          # Get current ET hour. If it's 5 PM ET (17:xx), this is the right cron.
-          # If it's 4 PM or 6 PM ET, skip (wrong cron for current DST).
+          # Get current ET hour. If it's 4 PM ET (16:xx), this is the right cron.
+          # Otherwise skip (wrong cron for current DST).
           ET_HOUR=$(TZ='America/New_York' date +%H)
-          if [ "$ET_HOUR" = "17" ]; then
-            echo "Correct time: 5 PM ET"
+          if [ "$ET_HOUR" = "16" ]; then
+            echo "Correct time: 4 PM ET"
             echo "skip=false" >> $GITHUB_OUTPUT
           else
-            echo "Wrong cron for DST (ET hour is $ET_HOUR, expected 17). Skipping."
+            echo "Wrong cron for DST (ET hour is $ET_HOUR, expected 16). Skipping."
             echo "skip=true" >> $GITHUB_OUTPUT
           fi
 
