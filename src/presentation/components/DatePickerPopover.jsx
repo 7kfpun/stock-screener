@@ -123,7 +123,7 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
         onClick={handleClick}
         sx={{
           px: 1.5,
-          py: 0.75,
+          py: 0.5,
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 1,
