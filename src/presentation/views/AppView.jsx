@@ -201,7 +201,7 @@ function AppView() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="xl" sx={{ py: 2, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <Container maxWidth={false} sx={{ py: 2, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxWidth: { xs: '100%', lg: '1400px', xl: '1600px', '2xl': '1800px' } }}>
         <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2, flexShrink: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>
@@ -384,7 +384,7 @@ function AppView() {
 
         {/* Disclaimer - bottom of screen */}
         {!loading && !error && (
-          <Box sx={{ pt: 0.5, pb: 1.5, px: 1, textAlign: 'center', flexShrink: 0 }}>
+          <Box sx={{ pt: 0.5, pb: 0.5, px: 1, textAlign: 'center', flexShrink: 0 }}>
             <Typography
               sx={{
                 color: 'text.secondary',
@@ -393,7 +393,7 @@ function AppView() {
               }}
             >
               <Box component="span" sx={{ fontWeight: 700, color: 'warning.main' }}>⚠️ DISCLAIMER: </Box>
-              For informational purposes only. Not investment advice. Past performance does not guarantee future results. Consult a financial advisor.
+              For informational purposes only. Not investment advice. Past performance does not guarantee future results. All data may be delayed or inaccurate. You should conduct your own research before making any investment decisions. Consult a qualified financial advisor.
             </Typography>
           </Box>
         )}
