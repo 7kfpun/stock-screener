@@ -108,7 +108,7 @@ jobs:
           APPROVALS=$(gh pr view $PR_NUMBER --json reviews -q '[.reviews[] | select(.state == "APPROVED")] | length')
           if [ "$APPROVALS" -gt 0 ]; then
             echo "PR has been approved. Merging..."
-            gh pr merge $PR_NUMBER --squash --auto --delete-branch
+            gh pr merge $PR_NUMBER --squash --delete-branch
           else
             echo "PR not approved yet. Skipping auto-merge."
           fi
