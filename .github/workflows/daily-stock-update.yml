@@ -27,15 +27,21 @@ jobs:
       - name: Check if correct cron for current DST
         id: dst_check
         run: |
-          # Get current ET hour. If it's 4 PM ET (16:xx), this is the right cron.
-          # Otherwise skip (wrong cron for current DST).
-          ET_HOUR=$(TZ='America/New_York' date +%H)
-          if [ "$ET_HOUR" = "16" ]; then
-            echo "Correct time: 4 PM ET"
+          # Skip time check for manual runs
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger detected - proceeding regardless of time"
             echo "skip=false" >> $GITHUB_OUTPUT
           else
-            echo "Wrong cron for DST (ET hour is $ET_HOUR, expected 16). Skipping."
-            echo "skip=true" >> $GITHUB_OUTPUT
+            # Get current ET hour. If it's 4 PM ET (16:xx), this is the right cron.
+            # Otherwise skip (wrong cron for current DST).
+            ET_HOUR=$(TZ='America/New_York' date +%H)
+            if [ "$ET_HOUR" = "16" ]; then
+              echo "Correct time: 4 PM ET"
+              echo "skip=false" >> $GITHUB_OUTPUT
+            else
+              echo "Wrong cron for DST (ET hour is $ET_HOUR, expected 16). Skipping."
+              echo "skip=true" >> $GITHUB_OUTPUT
+            fi
           fi
 
       - name: Checkout repository
