@@ -10,6 +10,12 @@ on:
       - "index.html"
       - "vite.config.js"
       - "package.json"
+  workflow_run:
+    workflows: ["OpenRouter PR Review and Auto-Merge"]
+    types:
+      - completed
+    branches:
+      - main
   workflow_dispatch: # Allow manual trigger
 
 permissions:
@@ -23,6 +29,8 @@ concurrency:
 
 jobs:
   build:
+    # Only run if triggered by push/workflow_dispatch, or if workflow_run completed successfully
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
