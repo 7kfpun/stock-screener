@@ -109,3 +109,13 @@ jobs:
           gh pr merge $PR_NUMBER --squash --delete-branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Deploy Workflow
+        if: steps.pr-details.outputs.is_automated == 'true'
+        run: |
+          echo "Triggering deployment to GitHub Pages..."
+          # Wait a moment for merge to complete
+          sleep 5
+          gh workflow run deploy.yml --ref main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
