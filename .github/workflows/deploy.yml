@@ -6,10 +6,11 @@ on:
       - main
     paths:
       - "src/**"
+      - "public/data/**"
       - "index.html"
       - "vite.config.js"
       - "package.json"
-  workflow_dispatch: # Allow manual trigger or explicit trigger from workflows
+  workflow_dispatch: # Allow manual trigger
 
 permissions:
   contents: read
