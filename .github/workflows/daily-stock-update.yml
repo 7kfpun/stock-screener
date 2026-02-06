@@ -12,6 +12,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  pages: write
+  id-token: write
 
 # IMPORTANT: Repository Settings Required
 # To allow GitHub Actions to create pull requests, you must enable:
@@ -22,6 +24,9 @@ jobs:
   update-stock-data:
     timeout-minutes: 10
     runs-on: ubuntu-latest
+    outputs:
+      branch_name: ${{ steps.create_pr.outputs.branch_name }}
+      has_changes: ${{ steps.create_pr.outputs.has_changes }}
 
     steps:
       - name: Check if correct cron for current DST
@@ -94,6 +99,7 @@ jobs:
           fi
 
       - name: Create Pull Request
+        id: create_pr
         if: steps.dst_check.outputs.skip != 'true' && steps.market_check.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
@@ -109,8 +115,12 @@ jobs:
 
           if git diff --staged --quiet; then
             echo "No changes to commit"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
             exit 0
           fi
+
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "branch_name=${BRANCH_NAME}" >> $GITHUB_OUTPUT
 
           # Create and switch to new branch
           git checkout -b ${BRANCH_NAME}
@@ -145,3 +155,46 @@ jobs:
             echo "::error::Enable: 'Allow GitHub Actions to create and approve pull requests'"
             exit 1
           }
+
+  build:
+    needs: update-stock-data
+    if: needs.update-stock-data.outputs.has_changes == 'true'
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.update-stock-data.outputs.branch_name }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
