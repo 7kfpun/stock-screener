@@ -78,6 +78,40 @@ class OpenRouterPRReviewer:
         return text.strip()
 
     @staticmethod
+    def extract_json_from_response(response: str) -> dict:
+        """Extract JSON object from response, handling markdown code blocks and extra text.
+
+        Tries multiple strategies in order:
+        1. Direct JSON parse (response is already clean JSON)
+        2. Strip ```json ... ``` or ``` ... ``` markdown code fences
+        3. Locate the outermost { ... } braces and parse that substring
+        """
+        # Strategy 1: direct parse
+        try:
+            return json.loads(response)
+        except json.JSONDecodeError:
+            pass
+
+        # Strategy 2: strip markdown code fences
+        code_fence = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', response)
+        if code_fence:
+            try:
+                return json.loads(code_fence.group(1))
+            except json.JSONDecodeError:
+                pass
+
+        # Strategy 3: find outermost { ... } braces
+        first_brace = response.find('{')
+        last_brace = response.rfind('}')
+        if first_brace != -1 and last_brace > first_brace:
+            try:
+                return json.loads(response[first_brace:last_brace + 1])
+            except json.JSONDecodeError:
+                pass
+
+        raise json.JSONDecodeError("Could not extract valid JSON from response", response, 0)
+
+    @staticmethod
     def safe_str(value, default: str = 'N/A') -> str:
         """Safely convert value to string, handling NaN values"""
         return str(value) if pd.notna(value) else default
@@ -236,9 +270,9 @@ CRITICAL Requirements:
         try:
             response = self.call_openrouter(messages)
 
-            # Parse JSON response (response-healing ensures valid JSON)
+            # Parse JSON response - use robust extraction to handle markdown-wrapped responses
             try:
-                all_analyses = json.loads(response)
+                all_analyses = self.extract_json_from_response(response)
 
                 # Process and clean each stock's analysis
                 result = {}
