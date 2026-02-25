@@ -300,5 +300,59 @@ class TestStockScreener:
         assert merged.columns.tolist().count('Market Cap') == 1
 
 
+class TestExtractJsonFromResponse:
+    """Tests for OpenRouterPRReviewer.extract_json_from_response"""
+
+    def _extract(self, text):
+        """Import and call the static method under test"""
+        import sys, os
+        sys.path.insert(0, os.path.dirname(__file__))
+        from openrouter_pr_review import OpenRouterPRReviewer
+        return OpenRouterPRReviewer.extract_json_from_response(text)
+
+    def test_plain_json(self):
+        """Clean JSON string parses directly"""
+        response = '{"AGI": {"description": "test", "latest_news": "", "why_selected": ""}}'
+        result = self._extract(response)
+        assert result["AGI"]["description"] == "test"
+
+    def test_json_fenced_with_backticks(self):
+        """JSON wrapped in ```json ... ``` fences is extracted correctly"""
+        response = '```json\n{"AGI": {"description": "test", "latest_news": "", "why_selected": ""}}\n```'
+        result = self._extract(response)
+        assert result["AGI"]["description"] == "test"
+
+    def test_json_fenced_without_language_tag(self):
+        """JSON wrapped in bare ``` ... ``` fences is extracted correctly"""
+        response = '```\n{"AGI": {"description": "test", "latest_news": "", "why_selected": ""}}\n```'
+        result = self._extract(response)
+        assert result["AGI"]["description"] == "test"
+
+    def test_json_with_leading_text(self):
+        """JSON preceded by prose text is extracted via brace detection"""
+        response = 'Here is the analysis:\n{"AGI": {"description": "test", "latest_news": "", "why_selected": ""}}'
+        result = self._extract(response)
+        assert result["AGI"]["description"] == "test"
+
+    def test_json_with_trailing_text(self):
+        """JSON followed by trailing text is extracted via brace detection"""
+        response = '{"AGI": {"description": "test", "latest_news": "", "why_selected": ""}}\nSome trailing note.'
+        result = self._extract(response)
+        assert result["AGI"]["description"] == "test"
+
+    def test_multiple_tickers(self):
+        """Multiple tickers in plain JSON parse correctly"""
+        response = '{"AGI": {"description": "a", "latest_news": "b", "why_selected": "c"}, "NVDA": {"description": "d", "latest_news": "e", "why_selected": "f"}}'
+        result = self._extract(response)
+        assert result["AGI"]["description"] == "a"
+        assert result["NVDA"]["description"] == "d"
+
+    def test_raises_on_unparseable_response(self):
+        """Completely unparseable input raises JSONDecodeError"""
+        import json
+        with pytest.raises(json.JSONDecodeError):
+            self._extract("This is not JSON at all and has no braces")
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
