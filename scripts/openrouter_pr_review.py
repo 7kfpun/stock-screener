@@ -233,28 +233,37 @@ class OpenRouterPRReviewer:
 
         stocks_section = "\n".join(stocks_info)
 
-        return f"""Search the web and provide analysis for the following top 5 stocks as of {current_date}:
+        tickers_list = ", ".join(td['ticker'] for td in tickers_data)
 
+        return f"""You are a financial analyst. Use web search to research the following {len(tickers_data)} stocks and return a structured JSON analysis.
+
+Date: {current_date}
+Stocks to analyze: {tickers_list}
+
+Stock metrics from our screener:
 {stocks_section}
 
-Return ONLY a valid JSON object with analysis for each ticker (no markdown, no code blocks, no citation tags):
+Your response MUST be a single JSON object — nothing else. No markdown fences, no prose before or after, no citation tags.
+Start your response with {{ and end with }}.
+
+Required JSON structure (replace TICKER with actual ticker symbols, e.g. AAPL, MSFT):
 {{
-  "TICKER1": {{
-    "description": "Brief overview in 2-3 bullet points:\\n• What the company does and its industry\\n• Market cap and size classification\\n• Market position or competitive advantage",
-    "latest_news": "Recent developments in bullet points (2-4 items):\\n• Specific events with dates and numbers\\n• Earnings results or financial updates\\n• Strategic announcements or operational changes",
-    "why_selected": "Investment thesis in bullet points based on quality growth investing:\\n• Valuation: Comment on P/E, PEG - is valuation reasonable?\\n• Profitability: Analyze ROE, ROIC, Profit Margin - are margins strong?\\n• Growth: Evaluate EPS growth rates - is growth accelerating?\\n• Quality: Overall assessment with Investor Score and momentum indicators"
+  "{tickers_data[0]['ticker']}": {{
+    "description": "• What the company does and its industry\\n• Market cap and size classification\\n• Key competitive advantage or market position",
+    "latest_news": "• [Date] Specific recent event or announcement\\n• [Date] Earnings result or financial update\\n• [Date] Strategic or operational development",
+    "why_selected": "• Valuation: P/E={tickers_data[0].get('pe','N/A')}, PEG={tickers_data[0].get('peg','N/A')} — is this reasonable?\\n• Profitability: ROE={tickers_data[0].get('roe','N/A')}%, Profit Margin={tickers_data[0].get('profit_margin','N/A')}% — are margins strong?\\n• Growth: EPS next 5Y={tickers_data[0].get('eps_next_5y','N/A')}% — is growth outlook positive?\\n• Quality: Investor Score={tickers_data[0].get('investor_score','N/A')}/100 — overall quality assessment"
   }},
-  "TICKER2": {{ ... }},
-  ...
+  "NEXT_TICKER": {{ "description": "...", "latest_news": "...", "why_selected": "..." }},
+  ...repeat for all {len(tickers_data)} tickers...
 }}
 
-CRITICAL Requirements:
-- DO NOT include any <cite> tags, citation markers, or source references in the output
-- Use bullet points (•) for better readability
-- Use web search to find the most recent and accurate information for ALL stocks
-- Be factual and specific with numbers and dates
-- Focus on investment-relevant information based on quality growth investing principles
-- Return ONLY the JSON object with all {len(tickers_data)} stocks, no other text"""
+Rules:
+- ALL {len(tickers_data)} tickers must appear in the JSON: {tickers_list}
+- Every ticker must have non-empty "description", "latest_news", and "why_selected" strings
+- Use actual data from web search — include specific numbers, dates, and facts
+- Do NOT include <cite>, citation markers, URLs, or source references anywhere in the values
+- Each field should use bullet points starting with •
+- Output the raw JSON object only — no text outside the braces"""
 
     def analyze_stocks_batch(self, tickers_data: List[Dict[str, str]]) -> Dict[str, Dict[str, str]]:
         """Analyze all stocks in a single batched API call using OpenRouter with web search"""
