@@ -145,8 +145,6 @@ class OpenRouterPRReviewer:
             "model": self.model_name,
             "messages": messages,
             "max_tokens": self.MAX_TOKENS,
-            "response_format": {"type": "json_object"},
-            "plugins": [{"id": "response-healing"}]
         }
 
         for attempt in range(max_retries):
@@ -294,7 +292,7 @@ CRITICAL Requirements:
 
             except json.JSONDecodeError as e:
                 print(f"Warning: Could not parse JSON response: {e}", file=sys.stderr)
-                print(f"Response was: {response[:500]}", file=sys.stderr)
+                print(f"Response was: {response[:1000]}", file=sys.stderr)
                 # Return error analysis for all tickers
                 return {
                     td['ticker']: self.create_error_analysis("Analysis unavailable - JSON parse error")
