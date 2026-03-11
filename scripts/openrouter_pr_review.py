@@ -277,6 +277,13 @@ Rules:
         try:
             response = self.call_openrouter(messages)
 
+            # Strip citation tags from the raw response BEFORE JSON parsing —
+            # the :online model can embed <cite> tags inside JSON strings,
+            # making them unparseable. clean_citations is also applied per-field
+            # below for any residual tags.
+            response = self.clean_citations(response)
+            print(f"Raw response preview: {response[:500]}", file=sys.stderr)
+
             # Parse JSON response - use robust extraction to handle markdown-wrapped responses
             try:
                 all_analyses = self.extract_json_from_response(response)
