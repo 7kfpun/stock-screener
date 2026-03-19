@@ -22,6 +22,11 @@ vi.mock('../../application/useStockData.js', () => ({
       { Ticker: 'MSFT', Company: 'Microsoft Corp.', Investor_Score: 80, Sector: 'Technology' },
       { Ticker: 'GOOGL', Company: 'Alphabet Inc.', Investor_Score: 75, Sector: 'Technology' },
     ],
+    summary: {
+      top_stocks: [
+        { ticker: 'AAPL', description: 'Apple makes consumer electronics', why_selected: 'Strong growth', latest_news: 'Record earnings' },
+      ],
+    },
     availableDates: ['2025-12-01', '2025-12-15'],
     selectedDate: '2025-12-15',
     loading: false,
