@@ -1,0 +1,36 @@
+{
+  "date": "2026-03-03",
+  "updated_at": "2026-03-03T21:26:45Z",
+  "top_stocks": [
+    {
+      "ticker": "AGI",
+      "description": "\u2022 Operates as a gold producer in Canada and Mexico with a focus on low-cost expansion and cash flow generation.\n\u2022 Large-cap gold producer with key assets including Island Gold and Magino, undergoing significant reserve conversion and mill expansion.\n\u2022 Market position strengthened by increasing mineral reserves and a rising production profile targeting 900,000 to 1,000,000 ounces annually.",
+      "latest_news": "\u2022 In February 2026, Alamos Gold reported fourth-quarter 2025 sales of US$575.3 million and net income of US$434.9 million.\n\u2022 The company announced a 60% increase in its quarterly dividend to US$0.04 per share.\n\u2022 Full-year net income surged to US$885.8 million year-over-year, marking a very large increase in profitability.\n\u2022 Mineral reserves increased by 125% at Island Gold to 5.1 million ounces and by 56% at Magino to 3.1 million ounces, materially strengthening the production runway.",
+      "why_selected": "\u2022 Valuation: A P/E of 24.92 appears reasonable given the company\u2019s high growth narrative and strong cash flow; some analyses suggest the stock trades at a discount to its intrinsic value projections.\n\u2022 Profitability: ROE of 22% and ROIC of 19% are strong for a gold producer, supported by a significant year-over-year jump in net income and expanding margins.\n\u2022 Growth: The company is on a clear growth trajectory with revenue projected at $2.4 billion by 2028, driven by the ramp-up of Magino and the Island Gold Phase 3+ expansion.\n\u2022 Quality: The Investor Score of 100/100 reflects high quality metrics, supported by recent stock momentum (up over 39% in the last three months) and consistent dividend increases."
+    },
+    {
+      "ticker": "MU",
+      "description": "\u2022 A leading global manufacturer of memory and storage solutions critical for computing, automotive, and AI applications.\n\u2022 Large-cap technology company known for its DRAM and NAND semiconductor innovation and vertical integration.\n\u2022 Market position solidified as a key supplier to the cloud computing and data center infrastructure sectors.",
+      "latest_news": "\u2022 Industry-leading focus on AI-driven memory demand has positioned the company for a sustained ramp-up in production capacity.\n\u2022 Continuous advancements in process technology and 3D NAND architecture are expected to expand its competitive moat in high-growth markets.\n\u2022 Significant capital expenditure into fabrication facilities is driving long-term cost efficiency and yield improvements.",
+      "why_selected": "\u2022 Valuation: The P/E"
+    },
+    {
+      "ticker": "AMG",
+      "description": "Analysis not returned for AMG",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "EGO",
+      "description": "Analysis not returned for EGO",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "CGAU",
+      "description": "Analysis not returned for CGAU",
+      "latest_news": "",
+      "why_selected": ""
+    }
+  ]
+}

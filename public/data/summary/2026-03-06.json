@@ -1,0 +1,36 @@
+{
+  "date": "2026-03-06",
+  "updated_at": "2026-03-06T21:26:43Z",
+  "top_stocks": [
+    {
+      "ticker": "AGI",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "FNV",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "WPM",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "CGAU",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "AU",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    }
+  ]
+}

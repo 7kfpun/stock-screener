@@ -1,0 +1,36 @@
+{
+  "date": "2026-03-13",
+  "updated_at": "2026-03-13T20:29:00Z",
+  "top_stocks": [
+    {
+      "ticker": "AGI",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "MU",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "SSRM",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "PAHC",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "SIMO",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    }
+  ]
+}

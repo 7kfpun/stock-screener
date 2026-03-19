@@ -1,0 +1,36 @@
+{
+  "date": "2026-03-11",
+  "updated_at": "2026-03-11T20:28:57Z",
+  "top_stocks": [
+    {
+      "ticker": "AGI",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "AVGO",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "MU",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "NVDA",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "CGAU",
+      "description": "Analysis unavailable",
+      "latest_news": "",
+      "why_selected": ""
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "date": "2026-03-02",
+  "updated_at": "2026-03-02T21:28:31Z",
+  "top_stocks": [
+    {
+      "ticker": "AGI",
+      "description": "\u2022 Alamos Gold Inc. is a leading gold producer operating mines in Canada and Mexico, with a focus on the Island Gold and Mulatos assets.\n\u2022 Market Cap is approximately US$20.1 billion, classified as a mid-cap to large-cap entity in the basic materials sector.\n\u2022 The company leverages its organic reserve growth (Island Gold expansion) to create a production ramp-up narrative supported by a low-cost mining base.",
+      "latest_news": "\u2022 In February 2026, Alamos reported Q4 2025 revenue of US$575.3 million and a record net income of US$434.9 million.\n\u2022 The company increased its quarterly dividend by 60% to US$0.04 per share and declared record free cash flow of US$351.7 million for 2025.\n\u2022 Mineral reserves grew by 32% year-over-year to 15.9 million ounces, driven largely by the Island Gold expansion and conversion of measured resources into proven reserves.",
+      "why_selected": "\u2022 Valuation: With a P/E of 26.39 and a PEG of 0.44, the stock appears attractively valued relative to its growth potential, though it may trade at a premium to traditional gold peers due to its quality growth profile.\n\u2022 Profitability: The ROE of 22.06% and ROIC of 19.02% are exceptionally strong for the mining sector, indicating high efficiency in deploying capital.\n\u2022 Growth: While current EPS growth is modest, the company is executing a major expansion plan at Island Gold, aiming to significantly boost output and margins in the coming years.\n\u2022 Quality: An Investor Score of 100/100 coupled with the strategic reserve growth and dividend increase signals a high-quality compounder with strong near-term catalysts."
+    },
+    {
+      "ticker": "MU",
+      "description": "\u2022 Micron Technology is a global leader in the design, manufacturing, and marketing of memory and storage solutions, including DRAM, NAND, and NOR.\n\u2022 As a dominant player in the semi-conductor industry, it has a market capitalization reflecting its essential role in the data center and AI supply chain.\n\u2022 Its competitive advantage lies in advanced process technology and its strategic position in the High Bandwidth Memory (HBM) market required for AI applications.",
+      "latest_news": "\u2022 Micron is poised to benefit from the sustained boom in AI infrastructure, with continued ramp-up of HBM production for next-generation GPU clusters.\n\u2022 The company is expected to lead industry-wide inventory corrections, stabilizing pricing for memory chips and improving margins.\n\u2022 Strategic partnerships with major foundries and cloud service providers are strengthening its roadmap for advanced node manufacturing.",
+      "why_selected": "\u2022 Valuation: Despite a high P/E of 39.23, the extremely low PEG of 0.11 suggests the stock may be undervalued if earnings growth meets or exceeds the high-single-digit to low-double-digit projections implied by the valuation.\n\u2022 Profitability: ROIC at 16.85% demonstrates efficient capital return in a capital-intensive industry, while a gross profit margin of 28.15% indicates strong pricing power in key segments.\n\u2022 Growth: EPS growth drivers include the shift towards mobile DRAM refresh, enterprise SSDs, and AI-specific memory products, which offer higher margins than legacy products.\n\u2022 Quality: A solid Investor Score and the company's established leadership in niche high-growth areas (like HBM) make it a top-tier growth contender."
+    },
+    {
+      "ticker": "AMG",
+      "description": "\u2022 Affiliated Managers Group is an asset management platform that partners with boutique investment firms to distribute their products globally.\n\u2022 With a market cap of approximately US$10 billion, it operates as a financial services holding company with a diversified portfolio of partnerships.\n\u2022 The company distinguishes itself through a low cost of capital and a unique business model that combines AUM growth with performance fee revenue.",
+      "latest_news": "\u2022 AMG has continued to attract high-quality boutique partners across active equities, fixed income, and alternative strategies, expanding its global reach.\n\u2022 The company benefited from strong market performance in",
+      "why_selected": ""
+    },
+    {
+      "ticker": "EGO",
+      "description": "Analysis not returned for EGO",
+      "latest_news": "",
+      "why_selected": ""
+    },
+    {
+      "ticker": "FNV",
+      "description": "Analysis not returned for FNV",
+      "latest_news": "",
+      "why_selected": ""
+    }
+  ]
+}

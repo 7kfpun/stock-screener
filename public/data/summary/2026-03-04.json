@@ -1,0 +1,36 @@
+{
+  "date": "2026-03-04",
+  "updated_at": "2026-03-04T21:26:27Z",
+  "top_stocks": [
+    {
+      "ticker": "AGI",
+      "description": "\u2022 Alamos Gold is a gold producer operating in Canada and Mexico.\n\u2022 Market cap is approximately US$20.1b.\n\u2022 Strong market position driven by significant reserve growth at Island Gold and Magino mines.",
+      "latest_news": "\u2022 Reported Q4 2025 sales of US$575.3m and net income of US$434.9m.\n\u2022 Increased quarterly dividend by 60% to US$0.04 per share.\n\u2022 Full-year 2025 net income reached US$885.8m with Island Gold reserves growing 125% to 5.1 million ounces.\n\u2022 Management targets around 1 million ounces of annual production by 2030.",
+      "why_selected": "\u2022 Valuation: P/E of 24.78 is justified by a PEG of 0.41, indicating the stock is undervalued relative to its growth potential; Simply Wall St analysis suggests fair value is significantly higher than current price.\n\u2022 Profitability: High ROE (22.06%) and ROIC (19.02%) indicate efficient use of equity and capital, typical of a quality gold producer.\n\u2022 Growth: Low PEG signals that earnings growth expectations are more favorable than the market pricing implies, supported by a solid dividend increase and reserve expansion.\n\u2022 Quality: Investor Score of 100 indicates a strong fit for quality growth criteria, with analyst estimates forecasting strong future cash generation."
+    },
+    {
+      "ticker": "MU",
+      "description": "\u2022 Micron Technology is a global leader in semiconductor manufacturing, specializing in memory and storage products.\n\u2022 Classified as a large-cap technology company within the hardware and semiconductors sector.\n\u2022 Holds a competitive advantage in DRAM and NAND technologies, crucial for data centers and consumer electronics.",
+      "latest_news": "\u2022 Company maintains a P/E ratio of 38.1 with a PEG of 0.1, indicating strong growth relative to valuation.\n\u2022 ROE stands at 22.55% and ROIC at 16.85%, reflecting high operational efficiency.\n\u2022 Profitability margins remain healthy at 28.15%, supporting the overall investment profile.",
+      "why_selected": "\u2022 Valuation: P/E of 38.1 is reasonable for a leading tech stock, compounded by a very low PEG of 0.1, suggesting the stock is trading at a significant discount to its actual growth rate.\n\u2022 Profitability: Exceptional ROE and ROIC suggest the company generates substantial returns on the capital invested by shareholders.\n\u2022 Growth: Despite modest near-term EPS growth (Next Y: 0.38%), the low PEG ratio suggests high quality growth in the medium to long term.\n\u2022 Quality: Investor Score of 100 points to a top-tier selection for growth investors, capitalizing on the semiconductor cycle."
+    },
+    {
+      "ticker": "FNV",
+      "description": "\u2022 Franco-Nevada is a gold royalty and streaming company, financing mining operations in exchange for rights to a percentage of future production.\n\u2022 Classified as a mid-to-large-cap company in the materials/mining finance sector.\n\u2022 Market position is secured by extensive diversified portfolio of gold, silver, and oil and gas royalties.",
+      "latest_news": "\u2022 Traded at a premium P/E of 54.94, supported by a PEG of 0.69, indicating reasonable valuation expectations for its sector.\n\u2022 ROE stands at 14.17% with an ROIC of 13.13%, signaling strong cash generation from a passive investment model.\n\u2022 Profit Margin is robust at 59.51%, making it one of the highest in the group.",
+      "why_selected": "\u2022 Valuation: P/E of 54.94 reflects a premium for safety, yet the PEG of 0.69 suggests the growth profile still justifies the valuation compared to peers.\n\u2022 Profitability: Extremely high profit margin (59.51%) demonstrates the efficiency of the royalty model, generating high cash flow with minimal operational costs.\n\u2022 Growth: EPS growth rates are moderate (~0.5% annually), characteristic of a mature, income-focused royalty firm rather than a high-growth equities play.\n\u2022 Quality: Investor Score of 90 suggests a defensive quality selection, balancing stable returns with a solid dividend profile."
+    },
+    {
+      "ticker": "SSRM",
+      "description": "\u2022 SSR Mining is a Canadian-based intermediate gold mining company focused on operations in Canada, Argentina, Turkey, and the United States.\n\u2022 Classified as a mid-cap mining company within the materials sector.\n\u2022 Competitive advantage is derived from its diversified asset portfolio and disciplined approach to production ramp-up.",
+      "latest_news": "\u2022 Currently trading at a low P/E of 18.2, coupled with a PEG of 0.24, suggesting strong undervaluation.\n\u2022 ROE and ROIC are solid at 11.97% and 10.83% respectively, indicating operational efficiency typical of tier-one mid-tier miners.\n\u2022 Profit margin of 24.28% provides a healthy operating buffer.",
+      "why_selected": "\u2022 Valuation: Attractive valuation metrics with a P"
+    },
+    {
+      "ticker": "KGC",
+      "description": "Analysis not returned for KGC",
+      "latest_news": "",
+      "why_selected": ""
+    }
+  ]
+}
