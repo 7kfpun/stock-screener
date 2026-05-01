@@ -29,11 +29,11 @@
     "@mui/material": "^7.3.4",
     "@mui/x-data-grid": "^8.27.3",
     "@mui/x-date-pickers": "^8.27.2",
-    "country-flag-icons": "^1.6.15",
-    "dayjs": "^1.11.19",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "recharts": "^3.7.0"
+    "country-flag-icons": "^1.6.16",
+    "dayjs": "^1.11.20",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
