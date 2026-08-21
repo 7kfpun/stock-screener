@@ -31,22 +31,46 @@ jobs:
     steps:
       - name: Check if correct cron for current DST
         id: dst_check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          # The cron expression that triggered this run, verbatim from the
+          # schedule block above. Keep the two values below in sync with it.
+          TRIGGERING_CRON: ${{ github.event.schedule }}
+          EDT_CRON: "15 20 * * 1-5"
+          EST_CRON: "15 21 * * 1-5"
         run: |
-          # Skip time check for manual runs
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Manual trigger detected - proceeding regardless of time"
+          # Skip the DST check for manual runs and any non-schedule trigger.
+          if [ "$EVENT_NAME" != "schedule" ]; then
+            echo "$EVENT_NAME trigger detected - proceeding regardless of time"
+            echo "skip=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # GitHub cron is always UTC and has no DST awareness, so two crons
+          # are registered and exactly one of them lands on 4:15 PM ET for a
+          # given date. Decide which by the current ET UTC offset, then check
+          # whether *this* run is the one that cron fired.
+          #
+          # Deliberately keyed off the triggering cron rather than the clock
+          # at runner start: GitHub routinely delays scheduled runs past the
+          # top of the hour, and the previous "is it 16:xx ET now?" check then
+          # skipped both crons and silently lost the whole trading day while
+          # still reporting success (e.g. 2026-08-10 through 2026-08-13).
+          ET_OFFSET=$(TZ='America/New_York' date +%z)
+          if [ "$ET_OFFSET" = "-0400" ]; then
+            LIVE_CRON="$EDT_CRON"
+            TZ_NAME="EDT"
+          else
+            LIVE_CRON="$EST_CRON"
+            TZ_NAME="EST"
+          fi
+
+          if [ "$TRIGGERING_CRON" = "$LIVE_CRON" ]; then
+            echo "Cron '$TRIGGERING_CRON' is the 4 PM ET cron under $TZ_NAME ($ET_OFFSET). Proceeding."
             echo "skip=false" >> $GITHUB_OUTPUT
           else
-            # Get current ET hour. If it's 4 PM ET (16:xx), this is the right cron.
-            # Otherwise skip (wrong cron for current DST).
-            ET_HOUR=$(TZ='America/New_York' date +%H)
-            if [ "$ET_HOUR" = "16" ]; then
-              echo "Correct time: 4 PM ET"
-              echo "skip=false" >> $GITHUB_OUTPUT
-            else
-              echo "Wrong cron for DST (ET hour is $ET_HOUR, expected 16). Skipping."
-              echo "skip=true" >> $GITHUB_OUTPUT
-            fi
+            echo "Cron '$TRIGGERING_CRON' is not the live cron under $TZ_NAME ($ET_OFFSET); '$LIVE_CRON' is. Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Checkout repository
