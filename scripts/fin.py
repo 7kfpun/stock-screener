@@ -247,6 +247,50 @@ try:
     # Sort the table by Investor Score (descending)
     all_table = all_table.sort_values(by="Investor_Score", ascending=False)
 
+    # The merge drops above tolerate a column going missing, so a column the
+    # frontend needs but this script never reads (Change, RSI, Beta, ...)
+    # would otherwise vanish from the CSV without failing the run. Check the
+    # contract explicitly, mirroring STOCK_NUMERIC_FIELDS in
+    # src/domain/stock/stock.js plus the identifier columns.
+    required_columns = [
+        "Ticker",
+        "Company",
+        "Sector",
+        "Industry",
+        "Country",
+        "Investor_Score",
+        "Price",
+        "Change",
+        "Market Cap",
+        "Volume",
+        "P/E",
+        "Forward P/E",
+        "PEG",
+        "P/S",
+        "P/B",
+        "ROE",
+        "ROA",
+        "ROIC",
+        "Profit M",
+        "Gross M",
+        "EPS This Y",
+        "EPS Next Y",
+        "EPS Next 5Y",
+        "Sales Past 5Y",
+        "Beta",
+        "SMA50",
+        "SMA200",
+        "52W High",
+        "52W Low",
+        "RSI",
+    ]
+    missing_columns = [c for c in required_columns if c not in all_table.columns]
+    if missing_columns:
+        raise KeyError(
+            "screener output is missing columns required by the frontend: "
+            f"{missing_columns}"
+        )
+
     # Output CSV to stdout
     all_table.to_csv(sys.stdout, sep="\t", index=False)
 
