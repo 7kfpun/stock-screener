@@ -1,8 +1,13 @@
+import os
+import sys
+
 import pytest
 import pandas as pd
-import sys
 from io import StringIO
 from unittest.mock import patch, MagicMock
+
+sys.path.insert(0, os.path.dirname(__file__))
+import fin
 
 
 class TestStockScreener:
@@ -92,7 +97,6 @@ class TestStockScreener:
 
     def test_calculate_investor_score(self):
         """Test the investor score calculation logic."""
-        # Create a sample row
         sample_row = pd.Series({
             'PEG': 0.8,  # Should score 30 (< 1)
             'ROE': 0.25,  # Should score 30 (> 0.2)
@@ -100,45 +104,7 @@ class TestStockScreener:
             'EPS Next 5Y': 0.35  # Should score 20 (> 0.3)
         })
 
-        # Define the scoring function (extracted from the script)
-        def calculate_investor_score(row):
-            score = 0
-
-            if not pd.isna(row["PEG"]):
-                if row["PEG"] > 0 and row["PEG"] < 1:
-                    score += 30
-                elif row["PEG"] >= 1 and row["PEG"] < 2:
-                    score += 20
-                elif row["PEG"] >= 2:
-                    score += 10
-
-            if not pd.isna(row["ROE"]):
-                if row["ROE"] > 0.2:
-                    score += 30
-                elif row["ROE"] > 0.1:
-                    score += 20
-                elif row["ROE"] > 0:
-                    score += 10
-
-            if not pd.isna(row["Profit M"]):
-                if row["Profit M"] > 0.2:
-                    score += 20
-                elif row["Profit M"] > 0.1:
-                    score += 15
-                elif row["Profit M"] > 0:
-                    score += 10
-
-            if not pd.isna(row["EPS Next 5Y"]):
-                if row["EPS Next 5Y"] > 0.3:
-                    score += 20
-                elif row["EPS Next 5Y"] > 0.2:
-                    score += 15
-                elif row["EPS Next 5Y"] > 0.1:
-                    score += 10
-
-            return score
-
-        score = calculate_investor_score(sample_row)
+        score = fin.calculate_investor_score(sample_row)
         assert score == 100, f"Expected score of 100, got {score}"
 
     def test_calculate_investor_score_with_nan(self):
@@ -150,44 +116,7 @@ class TestStockScreener:
             'EPS Next 5Y': 0.25  # Should score 15
         })
 
-        def calculate_investor_score(row):
-            score = 0
-
-            if not pd.isna(row["PEG"]):
-                if row["PEG"] > 0 and row["PEG"] < 1:
-                    score += 30
-                elif row["PEG"] >= 1 and row["PEG"] < 2:
-                    score += 20
-                elif row["PEG"] >= 2:
-                    score += 10
-
-            if not pd.isna(row["ROE"]):
-                if row["ROE"] > 0.2:
-                    score += 30
-                elif row["ROE"] > 0.1:
-                    score += 20
-                elif row["ROE"] > 0:
-                    score += 10
-
-            if not pd.isna(row["Profit M"]):
-                if row["Profit M"] > 0.2:
-                    score += 20
-                elif row["Profit M"] > 0.1:
-                    score += 15
-                elif row["Profit M"] > 0:
-                    score += 10
-
-            if not pd.isna(row["EPS Next 5Y"]):
-                if row["EPS Next 5Y"] > 0.3:
-                    score += 20
-                elif row["EPS Next 5Y"] > 0.2:
-                    score += 15
-                elif row["EPS Next 5Y"] > 0.1:
-                    score += 10
-
-            return score
-
-        score = calculate_investor_score(sample_row)
+        score = fin.calculate_investor_score(sample_row)
         assert score == 35, f"Expected score of 35, got {score}"
 
     def test_market_cap_conversion(self):
@@ -267,22 +196,11 @@ class TestStockScreener:
 
     def test_data_merge(self, sample_financial_data, sample_overview_data, sample_technical_data, sample_valuation_data):
         """Test merging of different data tables."""
-        merged = (
-            sample_financial_data.merge(
-                sample_overview_data.drop(columns=['Market Cap', 'Price', 'Change', 'Volume']),
-                on='Ticker',
-                how='left'
-            )
-            .merge(
-                sample_technical_data.drop(columns=['Price', 'Change', 'Volume']),
-                on='Ticker',
-                how='left'
-            )
-            .merge(
-                sample_valuation_data.drop(columns=['Market Cap', 'Price', 'Change', 'Volume', 'P/E']),
-                on='Ticker',
-                how='left'
-            )
+        merged = fin.merge_screener_views(
+            sample_financial_data,
+            sample_overview_data,
+            sample_technical_data,
+            sample_valuation_data,
         )
 
         # Check that all tickers are present
@@ -298,6 +216,129 @@ class TestStockScreener:
         # Check no duplicate columns
         assert merged.columns.tolist().count('Price') == 1
         assert merged.columns.tolist().count('Market Cap') == 1
+
+        # No pandas merge-suffix leakage
+        assert not [c for c in merged.columns if c.endswith(('_x', '_y'))]
+
+
+class TestFinvizColumnRename:
+    """Regression tests for the Aug 2026 outage.
+
+    finviz renamed the screener column "Change" to "Change %". The pipeline
+    merges four screener views that each repeat it, so the rename first
+    surfaced as `KeyError: "['Change'] not found in axis"` and then, once the
+    drops were made tolerant, as `MergeError: Passing 'suffixes' which cause
+    duplicate columns {'Change %_x'} is not allowed`.
+    """
+
+    # Column sets as finviz serves them today, taken from the header of a real
+    # public/data/*.csv snapshot, with "Change" renamed to "Change %".
+    FINANCIAL = ["Ticker", "Market Cap", "Dividend", "ROA", "ROE", "ROIC", "Curr R",
+                 "Quick R", "LTDebt/Eq", "Debt/Eq", "Gross M", "Oper M", "Profit M",
+                 "Earnings", "Price", "Change %", "Volume"]
+    OVERVIEW = ["Ticker", "Company", "Sector", "Industry", "Country", "Market Cap",
+                "P/E", "Price", "Change %", "Volume"]
+    TECHNICAL = ["Ticker", "Beta", "ATR", "SMA20", "SMA50", "SMA200", "52W High",
+                 "52W Low", "RSI", "Price", "Change from Open", "Gap", "Change %",
+                 "Volume"]
+    VALUATION = ["Ticker", "Market Cap", "P/E", "Forward P/E", "PEG", "P/S", "P/B",
+                 "P/C", "P/FCF", "EPS This Y", "EPS Next Y", "EPS Past 5Y",
+                 "EPS Next 5Y", "Sales Past 5Y", "Price", "Change %", "Volume"]
+
+    def _views(self, change_column="Change %"):
+        def frame(columns):
+            renamed = [change_column if c == "Change %" else c for c in columns]
+            return pd.DataFrame({c: [1, 2] for c in renamed} | {"Ticker": ["AAPL", "MSFT"]})
+        return [frame(c) for c in
+                (self.FINANCIAL, self.OVERVIEW, self.TECHNICAL, self.VALUATION)]
+
+    def _merge(self, change_column="Change %"):
+        views = [fin.normalize_columns(v) for v in self._views(change_column)]
+        return fin.merge_screener_views(*views)
+
+    def test_renamed_change_column_is_normalized(self):
+        """'Change %' is mapped back to the canonical 'Change'."""
+        merged = self._merge("Change %")
+        assert "Change" in merged.columns
+        assert "Change %" not in merged.columns
+
+    def test_merge_does_not_raise_on_renamed_column(self):
+        """The merge no longer dies on the duplicate-suffix collision."""
+        merged = self._merge("Change %")
+        assert not [c for c in merged.columns if c.endswith(("_x", "_y"))]
+
+    def test_original_hardcoded_drop_would_have_failed(self):
+        """Guards the fix: the old hardcoded drop list still breaks on rename.
+
+        Reproduces the first CI failure --
+        `KeyError: "['Change'] not found in axis"`. If this ever stops raising,
+        finviz has reverted the rename and the alias entry can be revisited.
+        """
+        financial, overview, _technical, _valuation = self._views("Change %")
+        with pytest.raises(KeyError, match="not found in axis"):
+            financial.merge(
+                overview.drop(columns=["Market Cap", "Price", "Change", "Volume"]),
+                on="Ticker", how="left",
+            )
+
+    def test_tolerant_drop_would_have_collided_on_suffixes(self):
+        """Guards the fix: errors='ignore' alone reintroduces the outage.
+
+        Reproduces the second CI failure -- once the drops were made tolerant,
+        the un-dropped duplicate collided during merge suffixing with
+        `Passing 'suffixes' which cause duplicate columns {'Change %_x'}`.
+        """
+        financial, overview, technical, valuation = self._views("Change %")
+        with pytest.raises(pd.errors.MergeError, match=r"Change %_x"):
+            (
+                financial.merge(
+                    overview.drop(
+                        columns=["Market Cap", "Price", "Change", "Volume"],
+                        errors="ignore",
+                    ),
+                    on="Ticker", how="left",
+                )
+                .merge(
+                    technical.drop(
+                        columns=["Price", "Change", "Volume"], errors="ignore"
+                    ),
+                    on="Ticker", how="left",
+                )
+                .merge(
+                    valuation.drop(
+                        columns=["Market Cap", "Price", "Change", "Volume", "P/E"],
+                        errors="ignore",
+                    ),
+                    on="Ticker", how="left",
+                )
+            )
+
+    def test_pipeline_still_works_if_finviz_reverts(self):
+        """A revert to 'Change' must keep working -- the alias is a no-op."""
+        merged = self._merge("Change")
+        assert "Change" in merged.columns
+        assert not [c for c in merged.columns if c.endswith(("_x", "_y"))]
+
+    def test_merged_schema_matches_required_columns(self):
+        """Everything the frontend needs survives the merge."""
+        merged = self._merge("Change %")
+        merged["Investor_Score"] = 0  # computed downstream, before the check
+        assert fin.missing_required_columns(merged) == []
+
+    def test_guard_detects_genuinely_missing_column(self):
+        """A column finviz drops outright is caught, not silently omitted."""
+        merged = self._merge("Change %")
+        merged["Investor_Score"] = 0
+        assert fin.missing_required_columns(merged.drop(columns=["Change"])) == ["Change"]
+
+    def test_merge_is_order_independent_of_alias_map(self):
+        """Secondary views never overwrite financial_data's columns."""
+        financial, overview, technical, valuation = (
+            fin.normalize_columns(v) for v in self._views("Change %")
+        )
+        merged = fin.merge_screener_views(financial, overview, technical, valuation)
+        for column in ("Price", "Change", "Volume", "Market Cap"):
+            assert merged.columns.tolist().count(column) == 1
 
 
 class TestExtractJsonFromResponse:
