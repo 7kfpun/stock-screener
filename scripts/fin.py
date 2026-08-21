@@ -66,20 +66,31 @@ try:
     print("Processing data...", file=sys.stderr)
 
     # Merge tables
+    # finviz occasionally serves duplicate column headers, which causes the
+    # finvizfinance scraper to silently drop one of the duplicate-named
+    # columns from a screener view (see lit26/finvizfinance#150). Use
+    # errors="ignore" so a missing column here doesn't crash the run; the
+    # value actually used downstream always comes from financial_data.
     all_table = (
         financial_data.merge(
-            overview_data.drop(columns=["Market Cap", "Price", "Change", "Volume"]),
+            overview_data.drop(
+                columns=["Market Cap", "Price", "Change", "Volume"],
+                errors="ignore",
+            ),
             on="Ticker",
             how="left",
         )
         .merge(
-            technical_data.drop(columns=["Price", "Change", "Volume"]),
+            technical_data.drop(
+                columns=["Price", "Change", "Volume"], errors="ignore"
+            ),
             on="Ticker",
             how="left",
         )
         .merge(
             valuation_data.drop(
-                columns=["Market Cap", "Price", "Change", "Volume", "P/E"]
+                columns=["Market Cap", "Price", "Change", "Volume", "P/E"],
+                errors="ignore",
             ),
             on="Ticker",
             how="left",
