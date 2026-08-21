@@ -3,6 +3,7 @@ import json
 import sys
 import warnings
 import os
+from contextlib import redirect_stdout
 from finvizfinance.screener.financial import Financial
 from finvizfinance.screener.overview import Overview
 from finvizfinance.screener.valuation import Valuation
@@ -13,16 +14,17 @@ from zoneinfo import ZoneInfo
 # Suppress warnings and logs from finvizfinance
 warnings.filterwarnings("ignore")
 
-# Save original stdout for later
-original_stdout = sys.stdout
+# finviz renames screener columns from time to time, and in Aug 2026 it started
+# suffixing percentage columns with " %": first "Change" -> "Change %" (fixed by
+# pinning that one alias), then "Change from Open" -> "Change from Open %" two
+# weeks later, which broke the pipeline again. Chasing one literal per outage
+# doesn't converge, so canonicalize the whole pattern back to the names the
+# frontend and every historical public/data/*.csv already use.
+PERCENT_SUFFIX = " %"
 
-# finviz renames screener columns from time to time -- it moved "Change" to
-# "Change %" in Aug 2026, which broke the pipeline. Map known aliases back to
-# the canonical names the frontend and every historical public/data/*.csv
-# already use, so a cosmetic upstream rename doesn't change our output schema.
-COLUMN_ALIASES = {
-    "Change %": "Change",
-}
+# Renames that do NOT follow the " %" pattern go here, keyed by the name finviz
+# serves and valued by the canonical name this pipeline emits.
+COLUMN_ALIASES = {}
 
 # Columns the frontend depends on, mirroring STOCK_NUMERIC_FIELDS in
 # src/domain/stock/stock.js plus the identifier columns. "Forward P/E" is the
@@ -60,10 +62,71 @@ REQUIRED_COLUMNS = [
     "RSI",
 ]
 
+# Percentage columns worth carrying into the CSV when finviz serves them, but
+# that no frontend code reads. If finviz renames or drops one, the daily update
+# must still ship: REQUIRED_COLUMNS above is the list this run is allowed to
+# fail on. "Change from Open" took the Aug 20 run down purely because the
+# conversion below assumed it was always present.
+OPTIONAL_PERCENT_COLUMNS = [
+    "Change from Open",
+]
+
+# Percentage columns the pipeline converts from "15%" to 0.15 unconditionally.
+PERCENT_COLUMNS = [
+    "EPS This Y",
+    "EPS Next Y",
+    "EPS Past 5Y",
+    "EPS Next 5Y",
+    "Sales Past 5Y",
+]
+
 
 def normalize_columns(df):
-    """Rename known finviz column aliases to the canonical pipeline names."""
-    return df.rename(columns=COLUMN_ALIASES)
+    """Rename finviz's column spellings to the canonical pipeline names.
+
+    Handles two kinds of rename: explicit entries in COLUMN_ALIASES, and the
+    " %" suffix finviz began appending to percentage columns in Aug 2026
+    ("Change %", "Change from Open %"). A suffixed column is only unsuffixed
+    when the canonical name is free -- if finviz ever serves both "Change" and
+    "Change %" as distinct columns, renaming would create a duplicate that
+    breaks the merge instead of fixing it.
+    """
+    renames = {c: COLUMN_ALIASES[c] for c in df.columns if c in COLUMN_ALIASES}
+    taken = set(df.columns) | set(renames.values())
+    for column in df.columns:
+        if column in renames or not column.endswith(PERCENT_SUFFIX):
+            continue
+        canonical = column[: -len(PERCENT_SUFFIX)]
+        if canonical and canonical not in taken:
+            renames[column] = canonical
+            taken.add(canonical)
+    return df.rename(columns=renames)
+
+
+def to_fraction(df, column):
+    """Convert a finviz percentage column ("2.5%") to a fraction (0.025)."""
+    df[column] = df[column].astype(str).str.replace("%", "").astype(float) / 100
+
+
+def fetch_view(name, screener_cls, filters, views):
+    """Fetch one screener view, recording the raw frame in `views`.
+
+    `views` is the diagnostic record the error handler dumps, so it holds the
+    frame exactly as finviz served it -- normalization happens afterwards, and
+    the raw headers are the thing worth logging when the next rename lands.
+    """
+    print(f"Fetching {name} data...", file=sys.stderr)
+    # finvizfinance prints progress to stdout and our CSV goes to stdout too, so
+    # silence it for the duration of the fetch. redirect_stdout restores
+    # whatever stream was current (rather than a module-level snapshot taken at
+    # import time), closes the devnull handle, and unwinds even if the fetch
+    # raises -- all three of which the previous manual swap got wrong.
+    with open(os.devnull, "w") as devnull, redirect_stdout(devnull):
+        screener = screener_cls()
+        screener.set_filter(filters_dict=filters)
+        data = screener.screener_view()
+    views[name] = data
+    return data
 
 
 def merge_screener_views(financial_data, *secondary_views):
@@ -131,6 +194,10 @@ def calculate_investor_score(row):
 
 
 def main():
+    # Declared outside the try so the error handler can report whichever views
+    # were fetched before the failure.
+    views = {}
+
     try:
         # Apply custom filters
         filters = {
@@ -149,34 +216,10 @@ def main():
             "Sales growthqtr over qtr": "Positive (>0%)",
         }
 
-        # Redirect stdout to suppress finvizfinance progress messages
-        print("Fetching financial data...", file=sys.stderr)
-        sys.stdout = open(os.devnull, 'w')
-        financial = Financial()
-        financial.set_filter(filters_dict=filters)
-        financial_data = financial.screener_view()
-        sys.stdout = original_stdout
-
-        print("Fetching overview data...", file=sys.stderr)
-        sys.stdout = open(os.devnull, 'w')
-        overview = Overview()
-        overview.set_filter(filters_dict=filters)
-        overview_data = overview.screener_view()
-        sys.stdout = original_stdout
-
-        print("Fetching valuation data...", file=sys.stderr)
-        sys.stdout = open(os.devnull, 'w')
-        valuation = Valuation()
-        valuation.set_filter(filters_dict=filters)
-        valuation_data = valuation.screener_view()
-        sys.stdout = original_stdout
-
-        print("Fetching technical data...", file=sys.stderr)
-        sys.stdout = open(os.devnull, 'w')
-        technical = Technical()
-        technical.set_filter(filters_dict=filters)
-        technical_data = technical.screener_view()
-        sys.stdout = original_stdout
+        financial_data = fetch_view("financial", Financial, filters, views)
+        overview_data = fetch_view("overview", Overview, filters, views)
+        valuation_data = fetch_view("valuation", Valuation, filters, views)
+        technical_data = fetch_view("technical", Technical, filters, views)
 
         print("Processing data...", file=sys.stderr)
 
@@ -227,51 +270,36 @@ def main():
             lambda x: "True" if x >= -0.2 else "False"
         )
 
-        # FACTOR FILTER #8
-        all_table["EPS This Y"] = (
-            all_table["EPS This Y"].astype(str).str.replace("%", "").astype(float) / 100
-        )
+        # FACTOR FILTERS #8-#12
+        for column in PERCENT_COLUMNS:
+            to_fraction(all_table, column)
         all_table["EPS_This_Y_Positive"] = all_table["EPS This Y"].apply(
             lambda x: "True" if x >= 0 else "False"
-        )
-
-        # FACTOR FILTER #9
-        all_table["EPS Next Y"] = (
-            all_table["EPS Next Y"].astype(str).str.replace("%", "").astype(float) / 100
         )
         all_table["EPS_Next_Y_Positive"] = all_table["EPS Next Y"].apply(
             lambda x: "True" if x >= 0 else "False"
         )
-
-        # FACTOR FILTER #10
-        all_table["EPS Past 5Y"] = (
-            all_table["EPS Past 5Y"].astype(str).str.replace("%", "").astype(float) / 100
-        )
         all_table["EPS_Past_5Y_Positive"] = all_table["EPS Past 5Y"].apply(
             lambda x: "True" if x >= 0 else "False"
         )
-
-        # FACTOR FILTER #11
-        all_table["EPS Next 5Y"] = (
-            all_table["EPS Next 5Y"].astype(str).str.replace("%", "").astype(float) / 100
-        )
         all_table["EPS_Next_5Y_Positive"] = all_table["EPS Next 5Y"].apply(
             lambda x: "True" if x >= 0 else "False"
-        )
-
-        # FACTOR FILTER #12
-        all_table["Sales Past 5Y"] = (
-            all_table["Sales Past 5Y"].astype(str).str.replace("%", "").astype(float) / 100
         )
         all_table["Sales_Past_5Y_Positive"] = all_table["Sales Past 5Y"].apply(
             lambda x: "True" if x >= 0 else "False"
         )
 
-        # FACTOR FILTER #13
-        all_table["Change from Open"] = (
-            all_table["Change from Open"].astype(str).str.replace("%", "").astype(float)
-            / 100
-        )
+        # FACTOR FILTER #13 -- optional: nothing downstream reads these, so a
+        # column finviz renames or retires costs us one CSV field, not the run.
+        for column in OPTIONAL_PERCENT_COLUMNS:
+            if column in all_table.columns:
+                to_fraction(all_table, column)
+            else:
+                print(
+                    f"Note: optional column {column!r} is absent from the screener "
+                    "output; continuing without it.",
+                    file=sys.stderr,
+                )
 
         # Run Day Stamp (use NYSE/Eastern timezone for consistency)
         eastern = ZoneInfo('America/New_York')
@@ -313,21 +341,15 @@ def main():
         all_table.to_csv(sys.stdout, sep="\t", index=False)
 
     except Exception as e:
-        # Reset stdout in case of error
-        sys.stdout = original_stdout
         print(f"Error: {str(e)}", file=sys.stderr)
         # finviz reshapes its screener headers periodically, and the resulting
-        # pandas errors rarely name the column that actually moved. Dump what each
-        # view returned so the CI log alone is enough to diagnose the next break.
-        for view_name in (
-            "financial_data",
-            "overview_data",
-            "technical_data",
-            "valuation_data",
-        ):
-            view = globals().get(view_name)
-            if view is not None:
-                print(f"  {view_name}: {list(view.columns)}", file=sys.stderr)
+        # pandas errors rarely name the column that actually moved. Dump what
+        # each view returned so the CI log alone is enough to diagnose the next
+        # break. This used to read globals(), which never sees frames local to
+        # main() -- so it printed nothing, and the Aug 20 "Change from Open"
+        # failure left no record of what finviz had actually served.
+        for view_name, view in views.items():
+            print(f"  {view_name}: {list(view.columns)}", file=sys.stderr)
         sys.exit(1)
 
 

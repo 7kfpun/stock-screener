@@ -4,6 +4,7 @@ import sys
 import pytest
 import pandas as pd
 from io import StringIO
+from collections import namedtuple
 from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -339,6 +340,180 @@ class TestFinvizColumnRename:
         merged = fin.merge_screener_views(financial, overview, technical, valuation)
         for column in ("Price", "Change", "Volume", "Market Cap"):
             assert merged.columns.tolist().count(column) == 1
+
+
+class TestPercentSuffixRename:
+    """Regression tests for the Aug 20 2026 outage.
+
+    Two weeks after finviz renamed "Change" to "Change %", it renamed
+    "Change from Open" the same way, and the pipeline died on
+    `KeyError: 'Change from Open'` (run 32439240995). The alias map only knew
+    the one literal, so the second rename cost another red run. These tests
+    pin the generalized behaviour instead of the next literal.
+    """
+
+    def test_suffixed_column_is_unsuffixed(self):
+        """Any " %"-suffixed column is canonicalized, not just "Change %"."""
+        df = pd.DataFrame({"Ticker": ["AAPL"], "Change from Open %": ["2.5%"]})
+        normalized = fin.normalize_columns(df)
+        assert "Change from Open" in normalized.columns
+        assert "Change from Open %" not in normalized.columns
+
+    def test_change_alias_still_covered(self):
+        """The #227 rename keeps working under the generalized rule."""
+        df = pd.DataFrame({"Ticker": ["AAPL"], "Change %": [0.02]})
+        assert "Change" in fin.normalize_columns(df).columns
+
+    def test_unsuffixed_columns_are_untouched(self):
+        """Columns without the suffix pass through unchanged."""
+        columns = ["Ticker", "Price", "SMA50", "Pct_Above_Low_Over_30%"]
+        df = pd.DataFrame({c: [1] for c in columns})
+        assert list(fin.normalize_columns(df).columns) == columns
+
+    def test_no_rename_when_canonical_name_is_taken(self):
+        """A collision must not be manufactured.
+
+        If finviz ever serves "Change" and "Change %" as genuinely distinct
+        columns, unsuffixing would produce a duplicate that breaks the merge
+        instead of fixing it. Leave the suffixed one alone.
+        """
+        df = pd.DataFrame({"Ticker": ["AAPL"], "Change": [0.02], "Change %": [2.0]})
+        normalized = fin.normalize_columns(df)
+        assert list(normalized.columns) == ["Ticker", "Change", "Change %"]
+
+    def test_two_suffixed_columns_cannot_collapse_together(self):
+        """Only the first of two columns sharing a canonical name is renamed."""
+        df = pd.DataFrame({"Ticker": ["AAPL"], "Gap %": [1.0], "Gap  %": [2.0]})
+        normalized = fin.normalize_columns(df)
+        assert normalized.columns.tolist().count("Gap") == 1
+
+    def test_merge_survives_the_aug_20_shape(self):
+        """The exact rename that broke run 32439240995 now merges cleanly."""
+        technical = pd.DataFrame({
+            "Ticker": ["AAPL", "MSFT"],
+            "SMA50": [0.08, 0.10],
+            "Change from Open %": ["2.5%", "1.8%"],
+            "Change %": [0.02, 0.015],
+        })
+        financial = pd.DataFrame({"Ticker": ["AAPL", "MSFT"], "ROE": [1.5, 1.2]})
+        merged = fin.merge_screener_views(
+            fin.normalize_columns(financial), fin.normalize_columns(technical)
+        )
+        assert "Change from Open" in merged.columns
+        assert not [c for c in merged.columns if c.endswith(("_x", "_y"))]
+
+
+class TestOptionalColumns:
+    """An optional column must never take the daily update down.
+
+    "Change from Open" is not in REQUIRED_COLUMNS and no frontend code reads
+    it, yet its unconditional conversion is what failed the Aug 20 run.
+    """
+
+    def test_optional_columns_are_not_required(self):
+        """The two contracts must not overlap, or the tolerance is a lie."""
+        assert not set(fin.OPTIONAL_PERCENT_COLUMNS) & set(fin.REQUIRED_COLUMNS)
+
+    def test_to_fraction_converts_percentages(self):
+        df = pd.DataFrame({"Change from Open": ["2.5%", "-1.2%"]})
+        fin.to_fraction(df, "Change from Open")
+        assert df["Change from Open"].iloc[0] == pytest.approx(0.025)
+        assert df["Change from Open"].iloc[1] == pytest.approx(-0.012)
+
+
+# Both streams of one mocked pipeline run: the CSV on stdout, the notes and
+# diagnostics on stderr.
+Run = namedtuple("Run", ["csv", "stderr"])
+
+
+class TestMainPipeline:
+    """End-to-end runs of main() with the screener views mocked out."""
+
+    FINANCIAL = {"Market Cap": ["$3000000000000", "$2500000000000"],
+                 "Dividend": [0.0055, 0.0075], "ROA": [0.25, 0.22],
+                 "ROE": [1.5, 1.2], "ROIC": [0.35, 0.31], "Gross M": [0.42, 0.68],
+                 "Profit M": [0.25, 0.35], "Price": [175.0, 375.0],
+                 "Change %": [0.02, 0.015], "Volume": [50000000, 30000000]}
+    OVERVIEW = {"Company": ["Apple Inc", "Microsoft Corp"],
+                "Sector": ["Technology", "Technology"],
+                "Industry": ["Consumer Electronics", "Software"],
+                "Country": ["USA", "USA"], "Beta": [1.2, 0.9],
+                "Price": [175.0, 375.0], "Change %": [0.02, 0.015],
+                "Volume": [50000000, 30000000]}
+    VALUATION = {"P/E": [28.5, 32.1], "Forward P/E": [25.0, 28.0],
+                 "PEG": [0.8, 1.5], "P/S": [7.5, 12.0], "P/B": [45.0, 12.5],
+                 "EPS This Y": ["15%", "18%"], "EPS Next Y": ["10%", "12%"],
+                 "EPS Past 5Y": ["20%", "22%"], "EPS Next 5Y": ["35%", "14%"],
+                 "Sales Past 5Y": ["10%", "12%"], "Price": [175.0, 375.0],
+                 "Change %": [0.02, 0.015], "Volume": [50000000, 30000000]}
+    TECHNICAL = {"SMA20": [0.05, 0.07], "SMA50": [0.08, 0.10],
+                 "SMA200": [0.15, 0.18], "52W High": [-0.10, -0.08],
+                 "52W Low": [0.45, 0.50], "RSI": [65.0, 62.0],
+                 "Gap": [0.01, 0.008], "Price": [175.0, 375.0],
+                 "Change %": [0.02, 0.015], "Volume": [50000000, 30000000]}
+
+    def _run(self, capsys, technical_extra=None, drop_from_valuation=None):
+        """Run main() with mocked screeners; return the parsed CSV."""
+        def view(payload):
+            frame = pd.DataFrame({"Ticker": ["AAPL", "MSFT"], **payload})
+            screener = MagicMock()
+            screener.screener_view.return_value = frame
+            return MagicMock(return_value=screener)
+
+        technical = {**self.TECHNICAL, **(technical_extra or {})}
+        valuation = {k: v for k, v in self.VALUATION.items()
+                     if k != drop_from_valuation}
+        with patch.object(fin, "Financial", view(self.FINANCIAL)), \
+             patch.object(fin, "Overview", view(self.OVERVIEW)), \
+             patch.object(fin, "Valuation", view(valuation)), \
+             patch.object(fin, "Technical", view(technical)):
+            fin.main()
+        # readouterr() drains the buffers, so capture both streams once here
+        # rather than leaving a second caller with an empty string.
+        captured = capsys.readouterr()
+        return Run(pd.read_csv(StringIO(captured.out), sep="\t"), captured.err)
+
+    RENAMED = {"Change from Open %": ["2.5%", "1.8%"]}
+
+    def test_aug_20_rename_no_longer_fails_the_run(self, capsys):
+        """`KeyError: 'Change from Open'` -- the outage, end to end."""
+        result = self._run(capsys, technical_extra=self.RENAMED).csv
+        assert fin.missing_required_columns(result) == []
+        assert result["Change from Open"].iloc[0] == pytest.approx(0.025)
+        # The canonical "Change" survives the rename too.
+        assert "Change %" not in result.columns
+        assert "Change" in result.columns
+
+    def test_run_survives_a_dropped_optional_column(self, capsys):
+        """finviz retiring the column outright is also non-fatal."""
+        result = self._run(capsys).csv
+        assert fin.missing_required_columns(result) == []
+        assert "Change from Open" not in result.columns
+
+    def test_dropped_optional_column_is_announced(self, capsys):
+        """Skipping it silently would hide a schema change from the CI log."""
+        assert "optional column 'Change from Open'" in self._run(capsys).stderr
+
+    def test_missing_required_column_still_fails_loudly(self, capsys):
+        """Tolerance is scoped to optional columns; the contract still bites."""
+        with pytest.raises(SystemExit) as exc:
+            self._run(capsys, technical_extra=self.RENAMED,
+                      drop_from_valuation="PEG")
+        assert exc.value.code == 1
+
+    def test_failure_dump_reports_the_fetched_columns(self, capsys):
+        """The diagnostic that stayed silent on Aug 20 now names the columns.
+
+        It read globals(), which never sees frames local to main(), so the CI
+        log carried the bare KeyError and nothing else.
+        """
+        with pytest.raises(SystemExit):
+            self._run(capsys, technical_extra=self.RENAMED,
+                      drop_from_valuation="PEG")
+        err = capsys.readouterr().err
+        assert "financial:" in err and "technical:" in err
+        # The raw, un-normalized finviz headers are what diagnose the next break.
+        assert "Change from Open %" in err
 
 
 class TestExtractJsonFromResponse:
