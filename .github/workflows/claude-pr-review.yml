@@ -75,6 +75,12 @@ jobs:
           git config --local user.name "github-actions[bot]"
 
       - name: OpenRouter PR Review
+        # The summaries are an enrichment; the CSV is what the daily run exists
+        # to produce. An OpenRouter-side failure -- account out of credits, API
+        # outage, missing key -- must never strand the data PR unmerged, so this
+        # step is allowed to fail without failing the job. Real CI failures are
+        # still caught by the "Wait for checks" gate below.
+        continue-on-error: true
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'anthropic/claude-haiku-4.5:online' }}

@@ -78,6 +78,84 @@ class TestExtractJsonFromResponse(unittest.TestCase):
             OpenRouterAnalyzer.extract_json_from_response("no json here at all")
 
 
+class TestAnalysisFailureDoesNotBlockMerge(unittest.TestCase):
+    """The daily data PR must merge even when OpenRouter is unusable.
+
+    An exhausted account balance returns HTTP 402, which requests raises as an
+    HTTPError. Previously that was swallowed into per-ticker placeholder
+    analyses, which were then written over the real summary/latest.json and
+    published. Now a wholesale failure returns None so run() can leave the
+    existing summaries alone and still exit 0.
+    """
+
+    def _analyzer(self):
+        with patch.object(OpenRouterAnalyzer, "__init__", lambda s: None):
+            a = OpenRouterAnalyzer.__new__(OpenRouterAnalyzer)
+        a.model_name = "test-model"
+        return a
+
+    TICKERS = [{"ticker": "AAPL", "name": "Apple Inc"},
+               {"ticker": "MSFT", "name": "Microsoft Corp"}]
+
+    def test_api_error_returns_none(self):
+        """Out of credits: the 402 propagates and the batch reports failure."""
+        import requests
+        analyzer = self._analyzer()
+        with patch.object(OpenRouterAnalyzer, "call_openrouter",
+                          side_effect=requests.exceptions.HTTPError("402 Payment Required")):
+            assert analyzer.analyze_stocks_batch(self.TICKERS) is None
+
+    def test_unparseable_response_returns_none(self):
+        """A response with no JSON in it is a failure, not empty content."""
+        analyzer = self._analyzer()
+        with patch.object(OpenRouterAnalyzer, "call_openrouter",
+                          return_value="I cannot help with that."):
+            assert analyzer.analyze_stocks_batch(self.TICKERS) is None
+
+    def test_partial_response_keeps_real_content(self):
+        """A parseable response missing one ticker keeps the other's content."""
+        analyzer = self._analyzer()
+        payload = {"AAPL": {"description": "d", "latest_news": "n", "why_selected": "w"}}
+        with patch.object(OpenRouterAnalyzer, "call_openrouter",
+                          return_value=json.dumps(payload)):
+            result = analyzer.analyze_stocks_batch(self.TICKERS)
+        assert result is not None
+        assert result["AAPL"]["description"] == "d"
+        assert "MSFT" in result  # placeholder, not a dropped ticker
+
+    def _run_with_failed_analysis(self):
+        """Drive run() with the analysis failing; return the mocked collaborators."""
+        analyzer = self._analyzer()
+        analyzer.pr_number = "1"
+        with patch.object(OpenRouterAnalyzer, "get_top_tickers",
+                          return_value=("2026-08-20", self.TICKERS)), \
+             patch.object(OpenRouterAnalyzer, "analyze_stocks_batch", return_value=None), \
+             patch.object(OpenRouterAnalyzer, "save_summaries") as save, \
+             patch.object(OpenRouterAnalyzer, "commit_and_push") as commit, \
+             patch.object(OpenRouterAnalyzer, "approve_pr") as approve, \
+             patch.object(OpenRouterAnalyzer, "post_pr_comment") as comment:
+            analyzer.run()
+        return save, commit, approve, comment
+
+    def test_run_exits_cleanly_so_the_pr_can_merge(self):
+        """run() must return normally -- a SystemExit would fail the step."""
+        self._run_with_failed_analysis()  # no SystemExit raised
+
+    def test_run_does_not_overwrite_existing_summaries(self):
+        """The real regression: placeholders must not reach summary/latest.json."""
+        save, commit, _approve, _comment = self._run_with_failed_analysis()
+        save.assert_not_called()
+        commit.assert_not_called()
+
+    def test_run_reports_the_skip_on_the_pr(self):
+        """Silently skipping would hide a broken integration indefinitely."""
+        _save, _commit, _approve, comment = self._run_with_failed_analysis()
+        comment.assert_called_once()
+        body = comment.call_args[0][0]
+        assert "summaries skipped" in body.lower()
+        assert "/review" in body  # tells the maintainer how to retry
+
+
 class TestCitationsBeforeJsonParsing(unittest.TestCase):
     """Key regression: <cite> tags embedded in JSON values must be stripped
     before extract_json_from_response is called, not after."""

@@ -265,8 +265,17 @@ Rules:
 - Each field should use bullet points starting with •
 - Output the raw JSON object only — no text outside the braces"""
 
-    def analyze_stocks_batch(self, tickers_data: List[Dict[str, str]]) -> Dict[str, Dict[str, str]]:
-        """Analyze all stocks in a single batched API call using OpenRouter with web search"""
+    def analyze_stocks_batch(
+        self, tickers_data: List[Dict[str, str]]
+    ) -> Optional[Dict[str, Dict[str, str]]]:
+        """Analyze all stocks in a single batched API call using OpenRouter with web search.
+
+        Returns None if the analysis failed outright -- the API call errored
+        (an out-of-credits 402, an outage) or the response could not be parsed.
+        That is distinct from a response that parsed but omitted some tickers,
+        where the missing ones get a per-ticker error analysis and the rest of
+        the real content is kept.
+        """
         tickers_list = [td['ticker'] for td in tickers_data]
         print(f"Analyzing {len(tickers_list)} stocks in batch: {', '.join(tickers_list)}...", file=sys.stderr)
 
@@ -309,18 +318,10 @@ Rules:
             except json.JSONDecodeError as e:
                 print(f"Warning: Could not parse JSON response: {e}", file=sys.stderr)
                 print(f"Response was: {response[:1000]}", file=sys.stderr)
-                # Return error analysis for all tickers
-                return {
-                    td['ticker']: self.create_error_analysis("Analysis unavailable - JSON parse error")
-                    for td in tickers_data
-                }
+                return None
         except Exception as e:
             print(f"Error in batch analysis: {e}", file=sys.stderr)
-            # Return error analysis for all tickers
-            return {
-                td['ticker']: self.create_error_analysis()
-                for td in tickers_data
-            }
+            return None
 
     def save_summaries(self, date: str, stock_analyses: List[Dict]) -> bool:
         """Generate and save summary JSON files"""
@@ -458,6 +459,29 @@ Rules:
 
         # Step 2: Analyze all tickers in a single batched API call
         batch_analyses = self.analyze_stocks_batch(tickers)
+
+        if batch_analyses is None:
+            # The model call failed outright. Writing placeholders here would
+            # overwrite the real summaries in summary/latest.json with
+            # "Analysis unavailable" and publish that to the site; the frontend
+            # matches summaries to stocks by ticker and treats a missing file as
+            # "no summary", so leaving the previous files alone degrades far
+            # more gracefully. Exit 0 so the data PR still merges -- the CSV is
+            # the point of the run, the summary is an extra.
+            print(
+                "Batch analysis failed; leaving existing summaries untouched.",
+                file=sys.stderr,
+            )
+            self.post_pr_comment(
+                "⚠️ **Stock summaries skipped for this run**\n\n"
+                "The OpenRouter analysis did not complete (commonly an exhausted "
+                "account balance or an API outage), so `public/data/summary/` was "
+                "left as it was rather than overwritten with placeholder text.\n\n"
+                "The stock data itself is unaffected and this PR can merge as "
+                "normal. Comment `/review` to retry the summaries once the "
+                "underlying issue is resolved."
+            )
+            return
 
         # Convert to the expected format
         stock_analyses = []
