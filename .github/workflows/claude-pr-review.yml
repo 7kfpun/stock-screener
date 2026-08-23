@@ -18,11 +18,17 @@ permissions:
 
 jobs:
   openrouter-review:
-    # Run on: automated PRs with public/data changes OR manual /review comment
+    # Run on: automated PRs with public/data changes OR manual /review comment.
+    # The comment path is restricted to people who can already write to the
+    # repo: this repository is public, the job spends real OpenRouter credit on
+    # every run, and without the author_association check any visitor could
+    # drain the account by commenting "/review" on any PR.
     if: |
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'automated')) ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/review'))
-    timeout-minutes: 15
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/review') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    timeout-minutes: 20
     runs-on: ubuntu-latest
 
     steps:
@@ -94,18 +100,69 @@ jobs:
 
       - name: Wait for checks
         if: steps.pr-details.outputs.is_automated == 'true'
-        run: |
-          echo "Waiting for all checks to complete..."
-          sleep 30
-          PR_NUMBER="${{ steps.pr-details.outputs.pr_number }}"
-          CHECKS_STATUS=$(gh pr checks $PR_NUMBER --json state -q '.[].state' || echo "")
-          if echo "$CHECKS_STATUS" | grep -q "FAILURE\|ERROR"; then
-            echo "Some checks failed. Will not auto-merge."
-            exit 1
-          fi
-          echo "All checks passed or pending. Proceeding with merge."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr-details.outputs.pr_number }}
+          # This job reports its own check run on the PR. Excluding it is what
+          # keeps the wait from blocking on itself forever.
+          SELF_CHECK: openrouter-review
+          # Long enough for PR Checks to finish (it runs in about a minute),
+          # short enough to stay inside the job's timeout alongside the
+          # OpenRouter call above.
+          WAIT_TIMEOUT_SECONDS: "480"
+          POLL_INTERVAL_SECONDS: "15"
+          # Checks are registered a little after the PR event, so a zero count
+          # early on means "not yet", not "none".
+          REGISTER_GRACE_SECONDS: "45"
+        run: |
+          set -uo pipefail
+
+          # Previously this slept 30s, took a single snapshot, and treated
+          # PENDING as passing -- so it happily merged before CI had finished.
+          # Poll until every other check has actually settled instead.
+          start=$(date +%s)
+          deadline=$(( start + WAIT_TIMEOUT_SECONDS ))
+
+          while :; do
+            # gh exits non-zero while checks are failing or still pending, so
+            # capture the payload without letting `bash -e` kill the step.
+            checks=$(gh pr checks "$PR_NUMBER" --json name,state 2>/dev/null || echo '[]')
+            others=$(jq --arg self "$SELF_CHECK" '[.[] | select(.name != $self)]' <<<"$checks")
+
+            total=$(jq -r 'length' <<<"$others")
+            failed=$(jq -r '[.[] | select(.state=="FAILURE" or .state=="ERROR" or .state=="CANCELLED" or .state=="TIMED_OUT")] | length' <<<"$others")
+            pending=$(jq -r '[.[] | select(.state=="PENDING" or .state=="QUEUED" or .state=="IN_PROGRESS" or .state=="WAITING")] | length' <<<"$others")
+
+            if [ "$failed" -gt 0 ]; then
+              echo "::error::$failed check(s) failed - not auto-merging."
+              jq -r '.[] | select(.state=="FAILURE" or .state=="ERROR" or .state=="CANCELLED" or .state=="TIMED_OUT") | "  \(.name): \(.state)"' <<<"$others"
+              exit 1
+            fi
+
+            elapsed=$(( $(date +%s) - start ))
+
+            if [ "$pending" -eq 0 ]; then
+              if [ "$total" -gt 0 ]; then
+                echo "All $total check(s) passed."
+                break
+              fi
+              # PR Checks sets paths-ignore on public/data/**, so a data-only
+              # PR legitimately has no other checks. Only conclude that once
+              # the grace period has passed and none have appeared.
+              if [ "$elapsed" -ge "$REGISTER_GRACE_SECONDS" ]; then
+                echo "No other checks registered after ${elapsed}s (expected for a data-only PR)."
+                break
+              fi
+            fi
+
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::error::Timed out after ${WAIT_TIMEOUT_SECONDS}s with $pending check(s) still pending - not auto-merging."
+              exit 1
+            fi
+
+            echo "Waiting: $pending of $total check(s) still running (${elapsed}s elapsed)."
+            sleep "$POLL_INTERVAL_SECONDS"
+          done
 
       - name: Auto-merge PR
         if: steps.pr-details.outputs.is_automated == 'true'

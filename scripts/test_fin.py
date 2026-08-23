@@ -3,6 +3,7 @@ import sys
 
 import pytest
 import pandas as pd
+import requests
 from io import StringIO
 from collections import namedtuple
 from unittest.mock import patch, MagicMock
@@ -340,6 +341,70 @@ class TestFinvizColumnRename:
         merged = fin.merge_screener_views(financial, overview, technical, valuation)
         for column in ("Price", "Change", "Volume", "Market Cap"):
             assert merged.columns.tolist().count(column) == 1
+
+
+class TestFetchRetries:
+    """A transient network error must not cost a whole trading day.
+
+    finviz's screener has no history endpoint, so a fetch lost to a blip is
+    gone for good -- there is nothing to backfill it from later.
+    """
+
+    def _screener(self, side_effect):
+        """A screener class whose screener_view() follows `side_effect`."""
+        screener = MagicMock()
+        screener.screener_view.side_effect = side_effect
+        return MagicMock(return_value=screener), screener
+
+    def test_transient_error_is_retried_then_succeeds(self):
+        frame = pd.DataFrame({"Ticker": ["AAPL"]})
+        cls, screener = self._screener(
+            [requests.exceptions.ConnectionError("boom"), frame]
+        )
+        views = {}
+        with patch.object(fin.time, "sleep") as sleep:
+            result = fin.fetch_view("technical", cls, {}, views)
+        assert screener.screener_view.call_count == 2
+        assert result is frame
+        assert views["technical"] is frame
+        sleep.assert_called_once_with(fin.FETCH_BACKOFF_SECONDS)
+
+    def test_backoff_is_exponential(self):
+        frame = pd.DataFrame({"Ticker": ["AAPL"]})
+        cls, _ = self._screener(
+            [requests.exceptions.Timeout("t1"), requests.exceptions.Timeout("t2"), frame]
+        )
+        with patch.object(fin.time, "sleep") as sleep:
+            fin.fetch_view("technical", cls, {}, {})
+        assert [c.args[0] for c in sleep.call_args_list] == [
+            fin.FETCH_BACKOFF_SECONDS,
+            fin.FETCH_BACKOFF_SECONDS * 2,
+        ]
+
+    def test_persistent_error_raises_after_budget(self):
+        cls, screener = self._screener(requests.exceptions.ConnectionError("down"))
+        with patch.object(fin.time, "sleep"):
+            with pytest.raises(requests.exceptions.ConnectionError):
+                fin.fetch_view("technical", cls, {}, {}, max_attempts=3)
+        assert screener.screener_view.call_count == 3
+
+    def test_non_network_error_is_not_retried(self):
+        """A reshaped page or bad filter fails identically every time."""
+        cls, screener = self._screener(ValueError("Invalid filter"))
+        with patch.object(fin.time, "sleep") as sleep:
+            with pytest.raises(ValueError):
+                fin.fetch_view("technical", cls, {}, {})
+        assert screener.screener_view.call_count == 1
+        sleep.assert_not_called()
+
+    def test_failed_view_is_absent_from_diagnostics(self):
+        """views records only what was actually fetched."""
+        cls, _ = self._screener(requests.exceptions.ConnectionError("down"))
+        views = {}
+        with patch.object(fin.time, "sleep"):
+            with pytest.raises(requests.exceptions.ConnectionError):
+                fin.fetch_view("technical", cls, {}, views)
+        assert views == {}
 
 
 class TestPercentSuffixRename:

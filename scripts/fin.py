@@ -1,9 +1,12 @@
 import pandas as pd
 import json
 import sys
+import time
 import warnings
 import os
 from contextlib import redirect_stdout
+
+import requests
 from finvizfinance.screener.financial import Financial
 from finvizfinance.screener.overview import Overview
 from finvizfinance.screener.valuation import Valuation
@@ -71,6 +74,12 @@ OPTIONAL_PERCENT_COLUMNS = [
     "Change from Open",
 ]
 
+# Retry budget for the four screener fetches. A lost fetch costs the trading
+# day permanently, so it is worth a few seconds of backoff; finviz is also
+# rate-limit prone when four views are pulled back to back.
+FETCH_MAX_ATTEMPTS = 3
+FETCH_BACKOFF_SECONDS = 5
+
 # Percentage columns the pipeline converts from "15%" to 0.15 unconditionally.
 PERCENT_COLUMNS = [
     "EPS This Y",
@@ -108,23 +117,50 @@ def to_fraction(df, column):
     df[column] = df[column].astype(str).str.replace("%", "").astype(float) / 100
 
 
-def fetch_view(name, screener_cls, filters, views):
+def fetch_view(name, screener_cls, filters, views, max_attempts=FETCH_MAX_ATTEMPTS):
     """Fetch one screener view, recording the raw frame in `views`.
 
     `views` is the diagnostic record the error handler dumps, so it holds the
     frame exactly as finviz served it -- normalization happens afterwards, and
     the raw headers are the thing worth logging when the next rename lands.
+
+    Network failures are retried with exponential backoff. The run happens once
+    a day and a lost fetch costs the whole trading day permanently -- finviz's
+    screener has no history endpoint, so there is nothing to backfill from
+    later. Only requests-level errors are retried: finvizfinance surfaces
+    timeouts, connection failures and HTTP errors as RequestException, while a
+    bad filter or a reshaped page raises something else and would fail
+    identically on every attempt.
     """
-    print(f"Fetching {name} data...", file=sys.stderr)
-    # finvizfinance prints progress to stdout and our CSV goes to stdout too, so
-    # silence it for the duration of the fetch. redirect_stdout restores
-    # whatever stream was current (rather than a module-level snapshot taken at
-    # import time), closes the devnull handle, and unwinds even if the fetch
-    # raises -- all three of which the previous manual swap got wrong.
-    with open(os.devnull, "w") as devnull, redirect_stdout(devnull):
-        screener = screener_cls()
-        screener.set_filter(filters_dict=filters)
-        data = screener.screener_view()
+    for attempt in range(1, max_attempts + 1):
+        print(
+            f"Fetching {name} data..."
+            + (f" (attempt {attempt}/{max_attempts})" if attempt > 1 else ""),
+            file=sys.stderr,
+        )
+        try:
+            # finvizfinance prints progress to stdout and our CSV goes to stdout
+            # too, so silence it for the duration of the fetch. redirect_stdout
+            # restores whatever stream was current (rather than a module-level
+            # snapshot taken at import time), closes the devnull handle, and
+            # unwinds even if the fetch raises -- all three of which the
+            # previous manual swap got wrong.
+            with open(os.devnull, "w") as devnull, redirect_stdout(devnull):
+                screener = screener_cls()
+                screener.set_filter(filters_dict=filters)
+                data = screener.screener_view()
+            break
+        except requests.exceptions.RequestException as e:
+            if attempt == max_attempts:
+                print(
+                    f"Fetching {name} data failed after {max_attempts} attempts: {e}",
+                    file=sys.stderr,
+                )
+                raise
+            delay = FETCH_BACKOFF_SECONDS * 2 ** (attempt - 1)
+            print(f"  {e}\n  Retrying in {delay}s...", file=sys.stderr)
+            time.sleep(delay)
+
     views[name] = data
     return data
 
