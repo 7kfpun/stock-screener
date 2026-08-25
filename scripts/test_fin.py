@@ -570,5 +570,97 @@ class TestExtractJsonFromResponse:
             self._extract("This is not JSON at all and has no braces")
 
 
+class TestDoubledTickerRepair:
+    """Regression tests for the Jul 15 2026 ticker corruption.
+
+    Starting with the 2026-07-15 snapshot every ticker in public/data/*.csv
+    carries its own initial twice -- CDNA -> CCDNA, LLY -> LLLY, AU -> AAU,
+    CACC -> CCACC. finviz added a single-letter logo placeholder inside the
+    ticker cell, and finvizfinance builds each cell with BeautifulSoup's
+    ``.text``, which concatenates the placeholder and the ticker link. Nothing
+    failed loudly: the four views are corrupted identically, so the merge key
+    still lines up and the run stays green while shipping wrong tickers.
+    """
+
+    # Real rows from public/data/2026-08-24.csv, as finviz served them.
+    CORRUPTED = ["CCDNA", "SSQM", "LLLY", "HHALO", "EETON", "AAU", "BB",
+                 "CCACC", "IIAG", "SSCHW", "PPAYC", "KKGC"]
+    EXPECTED = ["CDNA", "SQM", "LLY", "HALO", "ETON", "AU", "B",
+                "CACC", "IAG", "SCHW", "PAYC", "KGC"]
+
+    def _frame(self, tickers):
+        return pd.DataFrame({"Ticker": tickers, "Price": range(len(tickers))})
+
+    def test_placeholder_initial_is_stripped(self):
+        """The whole frame is repaired back to the real tickers."""
+        repaired = fin.repair_doubled_tickers(self._frame(self.CORRUPTED))
+        assert repaired["Ticker"].tolist() == self.EXPECTED
+
+    def test_other_columns_are_untouched(self):
+        """Only the Ticker column is rewritten."""
+        frame = self._frame(self.CORRUPTED)
+        repaired = fin.repair_doubled_tickers(frame)
+        assert repaired["Price"].tolist() == frame["Price"].tolist()
+
+    def test_clean_tickers_are_left_alone(self):
+        """A clean page must survive untouched, doubled letters included.
+
+        AAPL, BB and MMM genuinely start with a repeated letter, so an
+        unconditional strip would corrupt them the day finviz drops the
+        placeholder. This is the case that rules the naive fix out.
+        """
+        clean = ["AAPL", "BB", "MMM", "NVDA", "MSFT", "GOOGL", "TSLA",
+                 "AMZN", "META", "AVGO", "LLY", "COST"]
+        repaired = fin.repair_doubled_tickers(self._frame(clean))
+        assert repaired["Ticker"].tolist() == clean
+
+    def test_partial_doubling_is_not_repaired(self, capsys):
+        """A half-doubled frame is ambiguous: warn, change nothing."""
+        mixed = self.CORRUPTED[:8] + ["NVDA", "MSFT", "GOOGL", "TSLA"]
+        repaired = fin.repair_doubled_tickers(self._frame(mixed))
+        assert repaired["Ticker"].tolist() == mixed
+        assert "left untouched" in capsys.readouterr().err
+
+    def test_small_frame_is_not_repaired(self):
+        """Too few rows to tell the placeholder from a run of real tickers."""
+        few = ["AAPL", "BB", "MMM"]
+        repaired = fin.repair_doubled_tickers(self._frame(few))
+        assert repaired["Ticker"].tolist() == few
+
+    def test_empty_frame_is_handled(self):
+        """No rows, no repair, no exception."""
+        empty = pd.DataFrame({"Ticker": [], "Price": []})
+        assert fin.repair_doubled_tickers(empty)["Ticker"].tolist() == []
+
+    def test_frame_without_ticker_column_is_handled(self):
+        """A view missing the column passes through instead of raising."""
+        df = pd.DataFrame({"Price": [1.0, 2.0]})
+        assert fin.repair_doubled_tickers(df).equals(df)
+
+    def test_repair_keeps_the_merge_key_aligned(self):
+        """All four views are corrupted alike, so all four repair alike."""
+        views = [
+            self._frame(self.CORRUPTED).assign(**{column: 1.0})
+            for column in ("ROE", "Beta", "PEG")
+        ]
+        financial, technical, valuation = (
+            fin.repair_doubled_tickers(v) for v in views
+        )
+        merged = fin.merge_screener_views(financial, technical, valuation)
+        assert merged["Ticker"].tolist() == self.EXPECTED
+        assert len(merged) == len(self.EXPECTED)
+        assert merged["Beta"].notna().all()
+
+    def test_repair_runs_after_column_normalization(self):
+        """The two finviz workarounds compose in the pipeline's order."""
+        df = pd.DataFrame({
+            "Ticker": self.CORRUPTED,
+            "Change %": [0.01] * len(self.CORRUPTED),
+        })
+        result = fin.repair_doubled_tickers(fin.normalize_columns(df))
+        assert "Change" in result.columns
+        assert result["Ticker"].tolist() == self.EXPECTED
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

@@ -103,6 +103,61 @@ def normalize_columns(df):
     return df.rename(columns=renames)
 
 
+# The ticker cell finviz serves changed shape in Jul 2026: it now carries a
+# single-letter logo placeholder next to the ticker link, and finvizfinance
+# reads screener cells with BeautifulSoup's ``.text``, which concatenates every
+# descendant string. Every ticker therefore arrives with its own initial
+# doubled ("CDNA" -> "CCDNA", "LLY" -> "LLLY", "AU" -> "AAU").
+TICKER_COLUMN = "Ticker"
+
+# Below this many rows a frame could plausibly be all AAPL/BB/MMM by chance, so
+# the repair refuses to act rather than risk mangling genuine tickers.
+MIN_TICKERS_FOR_REPAIR = 10
+
+
+def repair_doubled_tickers(df):
+    """Drop the duplicated initial finviz's logo placeholder prepends.
+
+    Stripping the leading character unconditionally is not safe: AAPL, BB and
+    MMM genuinely begin with a repeated letter, so the day finviz drops the
+    placeholder an unconditional strip would corrupt them instead. Repair only
+    when *every* ticker in a frame of at least MIN_TICKERS_FOR_REPAIR carries a
+    doubled initial -- a real screener page never looks like that (the
+    pre-July snapshots in public/data hit exactly one row each, AAPL), and the
+    check heals itself the moment finviz reverts.
+
+    All four screener views are affected identically, so repairing each view
+    before the merge keeps the join key consistent; skipping the repair (tiny
+    result set) leaves them consistently doubled rather than half-fixed.
+    """
+    if TICKER_COLUMN not in df.columns or len(df) == 0:
+        return df
+
+    tickers = df[TICKER_COLUMN].astype(str).str.strip()
+    present = tickers[tickers != ""]
+    doubled = present.map(lambda t: len(t) >= 2 and t[0] == t[1])
+
+    if len(present) < MIN_TICKERS_FOR_REPAIR or not doubled.all():
+        # A partially doubled frame is neither the placeholder nor clean data;
+        # say so rather than silently shipping half-corrupt tickers.
+        if len(present) >= MIN_TICKERS_FOR_REPAIR and doubled.mean() > 0.5:
+            print(
+                f"Warning: {doubled.sum()}/{len(present)} tickers start with a "
+                "doubled letter. That is too many to be real and too few to be "
+                "the finviz logo placeholder, so tickers are left untouched.",
+                file=sys.stderr,
+            )
+        return df
+
+    repaired = tickers.str[1:]
+    print(
+        f"Note: stripped the finviz logo placeholder initial from "
+        f"{len(present)} tickers (e.g. {present.iloc[0]} -> {repaired.iloc[0]}).",
+        file=sys.stderr,
+    )
+    return df.assign(**{TICKER_COLUMN: repaired})
+
+
 def to_fraction(df, column):
     """Convert a finviz percentage column ("2.5%") to a fraction (0.025)."""
     df[column] = df[column].astype(str).str.replace("%", "").astype(float) / 100
@@ -223,10 +278,10 @@ def main():
 
         print("Processing data...", file=sys.stderr)
 
-        financial_data = normalize_columns(financial_data)
-        overview_data = normalize_columns(overview_data)
-        technical_data = normalize_columns(technical_data)
-        valuation_data = normalize_columns(valuation_data)
+        financial_data = repair_doubled_tickers(normalize_columns(financial_data))
+        overview_data = repair_doubled_tickers(normalize_columns(overview_data))
+        technical_data = repair_doubled_tickers(normalize_columns(technical_data))
+        valuation_data = repair_doubled_tickers(normalize_columns(valuation_data))
 
         all_table = merge_screener_views(
             financial_data, overview_data, technical_data, valuation_data
