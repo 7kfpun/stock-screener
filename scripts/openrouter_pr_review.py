@@ -34,8 +34,11 @@ class OpenRouterPRReviewer:
     """Handles PR review using OpenRouter API"""
 
     # API Configuration
-    API_URL = "https://openrouter.ai/api/v1/chat/completions"
+    # The Batch API references endpoints by path, the sync client by URL, so
+    # both are derived from one host + one path rather than spelled out twice.
+    API_HOST = "https://openrouter.ai"
     CHAT_COMPLETIONS_PATH = "/api/v1/chat/completions"
+    API_URL = f"{API_HOST}{CHAT_COMPLETIONS_PATH}"
     DEFAULT_MODEL_NAME = "anthropic/claude-haiku-4.5:online"
     MAX_TOKENS = 4096
     REQUEST_TIMEOUT = 120
@@ -45,7 +48,7 @@ class OpenRouterPRReviewer:
     # ~50% cheaper but are only served by the async Batch API, never by
     # chat/completions. We submit a single-request batch and poll until it
     # reaches a terminal status.
-    BATCH_API_URL = "https://openrouter.ai/api/beta/batches"
+    BATCH_API_URL = f"{API_HOST}/api/beta/batches"
     BATCH_MODEL_SUFFIX = ":batch"
     BATCH_COMPLETION_WINDOW = "24h"
     BATCH_POLL_INTERVAL = 15   # seconds between status polls
