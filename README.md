@@ -107,7 +107,35 @@ Automatically deployed to GitHub Pages on push to `main` branch.
 ### Required Secrets
 
 For automated PR reviews to work, add the following secret to your repository:
-- `CLAUDE_CODE_OAUTH_TOKEN`: OAuth token for claude-code-action to analyze PRs, generate stock summaries, and approve/merge.
+- `OPENROUTER_API_KEY`: OpenRouter API key used by `scripts/openrouter_pr_review.py` to analyze PRs, generate stock summaries, and approve/merge.
+
+### Optional Repository Variables
+
+The PR review workflow reads these repository variables (Settings → Secrets and variables → Actions → Variables):
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `OPENROUTER_MODEL` | `anthropic/claude-haiku-4.5:online` | Model slug used for the review. |
+| `OPENROUTER_BATCH_POLL_INTERVAL` | `15` | Seconds between batch status polls. |
+| `OPENROUTER_BATCH_MAX_WAIT` | `900` | Seconds to wait for a batch before giving up. |
+| `OPENROUTER_BATCH_FALLBACK` | `true` | Set `false` to fail instead of retrying with the non-batch model. |
+
+#### Batch models (`:batch`)
+
+A model slug ending in `:batch` (for example `google/gemini-3.7-flash:batch`) is
+served by OpenRouter's asynchronous [Batch API](https://openrouter.ai/docs/batch-quickstart)
+at roughly half the per-token price. Setting `OPENROUTER_MODEL` to such a slug
+makes the review script submit the analysis as a single-request batch, poll it
+until it reaches a terminal status, and read the result inline — no other
+configuration is needed.
+
+Trade-offs:
+- Results arrive in minutes rather than seconds (the batch window is 24h; the
+  workflow gives up after `OPENROUTER_BATCH_MAX_WAIT` and retries with the
+  non-batch model unless `OPENROUTER_BATCH_FALLBACK` is `false`).
+- The Batch API does not run plugins, so `:batch` models have **no web search**
+  (`:online` and `:batch` cannot be combined). The prompt adapts automatically
+  and asks the model to avoid inventing news.
 
 ### Required Repository Settings
 

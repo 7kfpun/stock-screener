@@ -2,6 +2,17 @@
 """
 OpenRouter PR Review Script
 Replaces claude-code-action with OpenRouter API for automated PR reviews
+
+Environment variables:
+  OPENROUTER_API_KEY   (required) OpenRouter API key
+  OPENROUTER_MODEL     Model slug. A ":batch" suffix (e.g.
+                       "google/gemini-3.7-flash:batch") routes the request
+                       through OpenRouter's async Batch API at roughly half
+                       the per-token price instead of chat/completions.
+  OPENROUTER_BATCH_POLL_INTERVAL  Seconds between batch status polls (default 15)
+  OPENROUTER_BATCH_MAX_WAIT       Seconds to wait for a batch (default 900)
+  OPENROUTER_BATCH_FALLBACK       "false" to fail instead of retrying the
+                                  non-batch model when a batch times out
 """
 
 import json
@@ -10,6 +21,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -22,10 +34,26 @@ class OpenRouterPRReviewer:
     """Handles PR review using OpenRouter API"""
 
     # API Configuration
-    API_URL = "https://openrouter.ai/api/v1/chat/completions"
+    # The Batch API references endpoints by path, the sync client by URL, so
+    # both are derived from one host + one path rather than spelled out twice.
+    API_HOST = "https://openrouter.ai"
+    CHAT_COMPLETIONS_PATH = "/api/v1/chat/completions"
+    API_URL = f"{API_HOST}{CHAT_COMPLETIONS_PATH}"
     DEFAULT_MODEL_NAME = "anthropic/claude-haiku-4.5:online"
     MAX_TOKENS = 4096
     REQUEST_TIMEOUT = 120
+
+    # Batch API Configuration
+    # Models suffixed with ":batch" (e.g. "google/gemini-3.7-flash:batch") are
+    # ~50% cheaper but are only served by the async Batch API, never by
+    # chat/completions. We submit a single-request batch and poll until it
+    # reaches a terminal status.
+    BATCH_API_URL = f"{API_HOST}/api/beta/batches"
+    BATCH_MODEL_SUFFIX = ":batch"
+    BATCH_COMPLETION_WINDOW = "24h"
+    BATCH_POLL_INTERVAL = 15   # seconds between status polls
+    BATCH_MAX_WAIT = 900       # give up after 15 min (CI job budget, not the 24h window)
+    BATCH_TERMINAL_STATUSES = {"completed", "failed", "expired", "cancelled", "canceled"}
 
     # CSV Column Configuration
     REQUIRED_COLUMNS = [
@@ -62,11 +90,69 @@ class OpenRouterPRReviewer:
         self.repo = os.getenv("GITHUB_REPOSITORY")
         self.model_name = os.getenv("OPENROUTER_MODEL", self.DEFAULT_MODEL_NAME)
 
+        self.batch_mode = self.is_batch_model(self.model_name)
+        self.batch_poll_interval = self.env_int("OPENROUTER_BATCH_POLL_INTERVAL", self.BATCH_POLL_INTERVAL)
+        self.batch_max_wait = self.env_int("OPENROUTER_BATCH_MAX_WAIT", self.BATCH_MAX_WAIT)
+        self.batch_fallback = os.getenv("OPENROUTER_BATCH_FALLBACK", "true").strip().lower() not in (
+            "0", "false", "no", "off"
+        )
+
         if not all([self.openrouter_api_key, self.github_token, self.pr_number, self.repo]):
             print("Error: Missing required environment variables", file=sys.stderr)
             sys.exit(1)
 
         print(f"Using OpenRouter model: {self.model_name}", file=sys.stderr)
+        if self.batch_mode:
+            print(
+                f"Batch mode enabled: submitting via {self.BATCH_API_URL} "
+                f"(poll every {self.batch_poll_interval}s, wait up to {self.batch_max_wait}s"
+                f"{', then fall back to ' + self.strip_batch_suffix(self.model_name) if self.batch_fallback else ''})",
+                file=sys.stderr,
+            )
+            # The Batch API does not run plugins, so a ":online"-style web
+            # search is unavailable here — analyses come from model knowledge.
+            print(
+                "Note: web search is not available on the Batch API; "
+                "'latest_news' will rely on the model's own knowledge.",
+                file=sys.stderr,
+            )
+
+    @staticmethod
+    def env_int(name: str, default: int) -> int:
+        """Read a positive int from the environment, falling back on bad input"""
+        raw = os.getenv(name)
+        if raw is None or not raw.strip():
+            return default
+        try:
+            value = int(raw)
+        except ValueError:
+            print(f"Warning: {name}={raw!r} is not an integer, using {default}", file=sys.stderr)
+            return default
+        if value <= 0:
+            print(f"Warning: {name}={value} must be positive, using {default}", file=sys.stderr)
+            return default
+        return value
+
+    @classmethod
+    def is_batch_model(cls, model_name: str) -> bool:
+        """True when the model slug requests the async Batch API (":batch")"""
+        return model_name.strip().lower().endswith(cls.BATCH_MODEL_SUFFIX)
+
+    @classmethod
+    def strip_batch_suffix(cls, model_name: str) -> str:
+        """Drop the ":batch" suffix to get the synchronous variant of a model"""
+        if cls.is_batch_model(model_name):
+            return model_name.strip()[: -len(cls.BATCH_MODEL_SUFFIX)]
+        return model_name.strip()
+
+    def build_headers(self) -> Dict[str, str]:
+        """Common headers for every OpenRouter request"""
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.openrouter_api_key}",
+            "HTTP-Referer": "https://github.com",
+            "X-Title": "Stock Screener PR Review",
+        }
 
     @staticmethod
     def clean_citations(text: str) -> str:
@@ -133,16 +219,29 @@ class OpenRouterPRReviewer:
         }
 
     def call_openrouter(self, messages: List[Dict], max_retries: int = 3) -> str:
-        """Make API call to OpenRouter with configured model + web search + retry logic"""
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.openrouter_api_key}",
-            "HTTP-Referer": "https://github.com",
-            "X-Title": "Stock Screener PR Review",
-        }
+        """Send a prompt to OpenRouter and return the assistant message content.
 
+        Routes through the async Batch API when the configured model carries a
+        ":batch" suffix (roughly half price, minutes instead of seconds), and
+        through chat/completions otherwise.
+        """
+        if not self.batch_mode:
+            return self.call_chat_completions(messages, self.model_name, max_retries)
+
+        try:
+            return self.call_batch_api(messages)
+        except Exception as e:
+            if not self.batch_fallback:
+                raise
+            sync_model = self.strip_batch_suffix(self.model_name)
+            print(f"Batch request failed ({type(e).__name__}: {e})", file=sys.stderr)
+            print(f"Falling back to synchronous model: {sync_model}", file=sys.stderr)
+            return self.call_chat_completions(messages, sync_model, max_retries)
+
+    def call_chat_completions(self, messages: List[Dict], model: str, max_retries: int = 3) -> str:
+        """Make a synchronous chat/completions call with retry logic"""
         data = {
-            "model": self.model_name,
+            "model": model,
             "messages": messages,
             "max_tokens": self.MAX_TOKENS,
         }
@@ -151,7 +250,7 @@ class OpenRouterPRReviewer:
             try:
                 response = requests.post(
                     self.API_URL,
-                    headers=headers,
+                    headers=self.build_headers(),
                     json=data,
                     timeout=self.REQUEST_TIMEOUT
                 )
@@ -167,6 +266,140 @@ class OpenRouterPRReviewer:
                 else:
                     print(f"Error calling OpenRouter API after {max_retries} attempts: {e}", file=sys.stderr)
                     raise
+
+    # ------------------------------------------------------------------
+    # Batch API (":batch" models)
+    # ------------------------------------------------------------------
+
+    def call_batch_api(self, messages: List[Dict]) -> str:
+        """Submit a one-request batch, wait for it, and return its content"""
+        custom_id = f"pr-review-{uuid.uuid4().hex[:8]}"
+        batch_id = self.submit_batch(messages, custom_id)
+        batch = self.poll_batch(batch_id)
+        return self.extract_batch_content(batch, custom_id)
+
+    def build_batch_payload(self, messages: List[Dict], custom_id: str) -> Dict:
+        """Build the create-batch request body.
+
+        Key order matters: OpenRouter stream-parses this body so that huge
+        "requests" arrays never have to be buffered, and rejects the request
+        with a 400 if "requests" is serialized before "endpoint"/"model".
+        Python dicts preserve insertion order, so keep these keys as-is.
+        """
+        return {
+            "endpoint": self.CHAT_COMPLETIONS_PATH,
+            "model": self.model_name,
+            "completion_window": self.BATCH_COMPLETION_WINDOW,
+            "requests": [
+                {
+                    "custom_id": custom_id,
+                    "method": "POST",
+                    "url": self.CHAT_COMPLETIONS_PATH,
+                    # "model" is omitted so the request inherits the
+                    # batch-level model; a mismatch here is rejected.
+                    "body": {
+                        "messages": messages,
+                        "max_tokens": self.MAX_TOKENS,
+                    },
+                }
+            ],
+        }
+
+    @staticmethod
+    def raise_for_status_verbose(response, action: str) -> None:
+        """raise_for_status, but log the response body first — the Batch API
+        explains rejections (bad model, key order, unsupported options) there."""
+        if response.status_code >= 400:
+            body = getattr(response, "text", "")
+            print(f"{action} failed with HTTP {response.status_code}: {body}", file=sys.stderr)
+        response.raise_for_status()
+
+    def submit_batch(self, messages: List[Dict], custom_id: str) -> str:
+        """Create a batch and return its id"""
+        response = requests.post(
+            self.BATCH_API_URL,
+            headers=self.build_headers(),
+            json=self.build_batch_payload(messages, custom_id),
+            timeout=self.REQUEST_TIMEOUT,
+        )
+        self.raise_for_status_verbose(response, "Batch submission")
+        batch = response.json()
+
+        batch_id = batch.get("id")
+        if not batch_id:
+            raise RuntimeError(f"Batch submission returned no id: {batch}")
+
+        print(f"Submitted batch {batch_id} (status: {batch.get('status', 'unknown')})", file=sys.stderr)
+        return batch_id
+
+    def get_batch(self, batch_id: str) -> Dict:
+        """Fetch the current state of a batch"""
+        response = requests.get(
+            f"{self.BATCH_API_URL}/{batch_id}",
+            headers=self.build_headers(),
+            timeout=self.REQUEST_TIMEOUT,
+        )
+        self.raise_for_status_verbose(response, f"Batch status poll for {batch_id}")
+        return response.json()
+
+    def poll_batch(self, batch_id: str) -> Dict:
+        """Poll a batch until it reaches a terminal status or we run out of time"""
+        deadline = time.monotonic() + self.batch_max_wait
+
+        while True:
+            batch = self.get_batch(batch_id)
+            status = batch.get("status", "unknown")
+
+            if status in self.BATCH_TERMINAL_STATUSES:
+                print(f"Batch {batch_id} finished with status: {status}", file=sys.stderr)
+                return batch
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"Batch {batch_id} still '{status}' after {self.batch_max_wait}s"
+                )
+
+            counts = batch.get("request_counts") or {}
+            print(
+                f"Batch {batch_id} status: {status} {counts} "
+                f"— polling again in {self.batch_poll_interval}s "
+                f"({int(remaining)}s left)",
+                file=sys.stderr,
+            )
+            time.sleep(min(self.batch_poll_interval, remaining))
+
+    def extract_batch_content(self, batch: Dict, custom_id: str) -> str:
+        """Pull the assistant message content out of a completed batch"""
+        status = batch.get("status", "unknown")
+        if status != "completed":
+            raise RuntimeError(f"Batch ended with status '{status}': {batch.get('error')}")
+
+        results = batch.get("results") or []
+        if not results:
+            raise RuntimeError("Completed batch returned no results")
+
+        matches = [item for item in results if item.get("custom_id") == custom_id]
+        if not matches and len(results) == 1:
+            # Single-request batch: trust the only result even if the id differs
+            matches = results
+        if not matches:
+            raise RuntimeError(f"No batch result for custom_id {custom_id}")
+
+        item = matches[0]
+        if item.get("error"):
+            raise RuntimeError(f"Batch request failed: {item['error']}")
+
+        response = item.get("response") or {}
+        status_code = response.get("status_code")
+        if status_code is not None and status_code != 200:
+            raise RuntimeError(f"Batch request returned HTTP {status_code}: {response.get('body')}")
+
+        choices = (response.get("body") or {}).get("choices") or []
+        if not choices:
+            raise RuntimeError(f"Batch result had no choices: {item}")
+
+        return choices[0]["message"]["content"]
 
     def get_top_tickers(self) -> tuple[Optional[str], List[Dict]]:
         """Read CSV file and get top 5 tickers using pandas"""
@@ -235,7 +468,25 @@ class OpenRouterPRReviewer:
 
         tickers_list = ", ".join(td['ticker'] for td in tickers_data)
 
-        return f"""You are a financial analyst. Use web search to research the following {len(tickers_data)} stocks and return a structured JSON analysis.
+        # The Batch API does not run plugins, so ":batch" models have no web
+        # search — ask for grounded recall instead of pretending otherwise.
+        if self.batch_mode:
+            research_line = (
+                f"You are a financial analyst. Analyze the following {len(tickers_data)} stocks "
+                "using your own knowledge and the screener metrics below, and return a structured JSON analysis."
+            )
+            data_rule = (
+                "- Use only facts you are confident about — include specific numbers and dates, "
+                "and say \"no recent update available\" rather than inventing news"
+            )
+        else:
+            research_line = (
+                f"You are a financial analyst. Use web search to research the following {len(tickers_data)} stocks "
+                "and return a structured JSON analysis."
+            )
+            data_rule = "- Use actual data from web search — include specific numbers, dates, and facts"
+
+        return f"""{research_line}
 
 Date: {current_date}
 Stocks to analyze: {tickers_list}
@@ -260,7 +511,7 @@ Required JSON structure (replace TICKER with actual ticker symbols, e.g. AAPL, M
 Rules:
 - ALL {len(tickers_data)} tickers must appear in the JSON: {tickers_list}
 - Every ticker must have non-empty "description", "latest_news", and "why_selected" strings
-- Use actual data from web search — include specific numbers, dates, and facts
+{data_rule}
 - Do NOT include <cite>, citation markers, URLs, or source references anywhere in the values
 - Each field should use bullet points starting with •
 - Output the raw JSON object only — no text outside the braces"""

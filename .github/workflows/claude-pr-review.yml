@@ -22,7 +22,9 @@ jobs:
     if: |
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'automated')) ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/review'))
-    timeout-minutes: 15
+    # Generous budget: ":batch" models are served asynchronously and can take
+    # several minutes to come back (see OPENROUTER_BATCH_MAX_WAIT below).
+    timeout-minutes: 30
     runs-on: ubuntu-latest
 
     steps:
@@ -77,7 +79,12 @@ jobs:
       - name: OpenRouter PR Review
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # A ':batch' suffix (e.g. google/gemini-3.7-flash:batch) routes the
+          # review through OpenRouter's async Batch API at ~half the price.
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'anthropic/claude-haiku-4.5:online' }}
+          OPENROUTER_BATCH_POLL_INTERVAL: ${{ vars.OPENROUTER_BATCH_POLL_INTERVAL || '15' }}
+          OPENROUTER_BATCH_MAX_WAIT: ${{ vars.OPENROUTER_BATCH_MAX_WAIT || '900' }}
+          OPENROUTER_BATCH_FALLBACK: ${{ vars.OPENROUTER_BATCH_FALLBACK || 'true' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr-details.outputs.pr_number }}
           GITHUB_REPOSITORY: ${{ github.repository }}
