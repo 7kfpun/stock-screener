@@ -75,7 +75,7 @@ jobs:
 
       - name: Checkout repository
         if: steps.dst_check.outputs.skip != 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python
         if: steps.dst_check.outputs.skip != 'true'
@@ -187,7 +187,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.update-stock-data.outputs.branch_name }}
 
