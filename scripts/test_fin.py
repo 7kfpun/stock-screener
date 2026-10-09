@@ -664,3 +664,62 @@ class TestDoubledTickerRepair:
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
+
+
+class TestFinvizRequests:
+    """The Sep 2026 outage: finviz 403'd finvizfinance 1.3.0's Chrome/81 UA."""
+
+    @staticmethod
+    def _response(status, body=b"", headers=None):
+        import requests
+        response = requests.Response()
+        response.status_code = status
+        response._content = body
+        response.headers.update(headers or {})
+        response.url = "https://finviz.com/screener.ashx"
+        return response
+
+    def test_requests_carry_a_current_browser_user_agent(self):
+        fin.configure_finviz_session()
+        user_agent = fin.finviz_util.headers["User-Agent"]
+        assert "Chrome/81" not in user_agent
+        assert fin.finviz_util.headers["Accept-Language"]
+
+    def test_configuring_twice_registers_the_hook_once(self):
+        fin.configure_finviz_session()
+        fin.configure_finviz_session()
+        hooks = fin.finviz_util.session.hooks["response"]
+        assert hooks.count(fin.log_blocked_response) == 1
+
+    def test_blocked_response_is_logged(self, capsys):
+        fin.log_blocked_response(self._response(
+            403, b"Just a moment...", {"cf-mitigated": "challenge"}))
+        err = capsys.readouterr().err
+        assert "403" in err and "challenge" in err
+
+    def test_successful_response_is_not_logged(self, capsys):
+        fin.log_blocked_response(self._response(200, b"<html></html>"))
+        assert capsys.readouterr().err == ""
+
+    def test_transient_403_is_retried(self, monkeypatch):
+        import requests
+        monkeypatch.setattr(fin.time, "sleep", lambda _: None)
+        frame = pd.DataFrame({"Ticker": ["AAPL"]})
+        attempts = MagicMock(side_effect=[
+            requests.exceptions.HTTPError("403 Client Error: Forbidden"),
+            frame,
+        ])
+        monkeypatch.setattr(fin, "_screener_view", attempts)
+        views = {}
+        assert fin.fetch_view("financial", MagicMock(), {}, views) is frame
+        assert attempts.call_count == 2
+        assert views["financial"] is frame
+
+    def test_persistent_403_still_fails(self, monkeypatch):
+        import requests
+        monkeypatch.setattr(fin.time, "sleep", lambda _: None)
+        attempts = MagicMock(side_effect=requests.exceptions.HTTPError("403"))
+        monkeypatch.setattr(fin, "_screener_view", attempts)
+        with pytest.raises(requests.exceptions.HTTPError):
+            fin.fetch_view("financial", MagicMock(), {}, {})
+        assert attempts.call_count == fin.FETCH_ATTEMPTS

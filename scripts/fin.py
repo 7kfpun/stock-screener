@@ -3,7 +3,10 @@ import json
 import sys
 import warnings
 import os
+import time
 from contextlib import redirect_stdout
+import requests
+from finvizfinance import util as finviz_util
 from finvizfinance.screener.financial import Financial
 from finvizfinance.screener.overview import Overview
 from finvizfinance.screener.valuation import Valuation
@@ -158,6 +161,57 @@ def repair_doubled_tickers(df):
     return df.assign(**{TICKER_COLUMN: repaired})
 
 
+# finvizfinance 1.3.0 sends a 2020-era Chrome/81 User-Agent and nothing else.
+# From late Sep 2026 finviz answered that with 403 Forbidden on every screener
+# request (finvizfinance itself moved to a current UA in 1.5.0 for the same
+# reason). Every request the library makes reads util.headers at call time, so
+# replacing its contents here is enough -- no need to take the whole 1.5.0
+# rewrite, which reshapes the screener parsing this script works around.
+BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+    ),
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,*/*;q=0.8"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://finviz.com/",
+}
+
+# A 403 can be a transient rate-limit as easily as a hard block, so each view
+# gets a few attempts with growing pauses before the run is declared failed.
+FETCH_ATTEMPTS = 3
+FETCH_BACKOFF_SECONDS = 10
+
+
+def log_blocked_response(response, *args, **kwargs):
+    """Log enough of a non-2xx finviz response to tell what blocked it.
+
+    finvizfinance 1.3.0 re-raises HTTP errors as a bare message and drops the
+    response, so the Sep 2026 403s left no hint whether it was the User-Agent
+    or a Cloudflare IP-reputation wall (``cf-mitigated: challenge``).
+    """
+    if response.status_code >= 400:
+        print(
+            f"finviz responded {response.status_code} "
+            f"(server={response.headers.get('server')!r}, "
+            f"cf-mitigated={response.headers.get('cf-mitigated')!r}, "
+            f"body starts {response.text[:120]!r})",
+            file=sys.stderr,
+        )
+
+
+def configure_finviz_session():
+    """Point finvizfinance's shared session at BROWSER_HEADERS (idempotent)."""
+    finviz_util.headers.clear()
+    finviz_util.headers.update(BROWSER_HEADERS)
+    hooks = finviz_util.session.hooks["response"]
+    if log_blocked_response not in hooks:
+        hooks.append(log_blocked_response)
+
+
 def to_fraction(df, column):
     """Convert a finviz percentage column ("2.5%") to a fraction (0.025)."""
     df[column] = df[column].astype(str).str.replace("%", "").astype(float) / 100
@@ -170,7 +224,26 @@ def fetch_view(name, screener_cls, filters, views):
     frame exactly as finviz served it -- normalization happens afterwards, and
     the raw headers are the thing worth logging when the next rename lands.
     """
-    print(f"Fetching {name} data...", file=sys.stderr)
+    for attempt in range(1, FETCH_ATTEMPTS + 1):
+        print(f"Fetching {name} data...", file=sys.stderr)
+        try:
+            data = _screener_view(screener_cls, filters)
+            break
+        except requests.exceptions.HTTPError as err:
+            if attempt == FETCH_ATTEMPTS:
+                raise
+            delay = FETCH_BACKOFF_SECONDS * attempt
+            print(
+                f"Attempt {attempt}/{FETCH_ATTEMPTS} for {name} failed ({err}); "
+                f"retrying in {delay}s.",
+                file=sys.stderr,
+            )
+            time.sleep(delay)
+    views[name] = data
+    return data
+
+
+def _screener_view(screener_cls, filters):
     # finvizfinance prints progress to stdout and our CSV goes to stdout too, so
     # silence it for the duration of the fetch. redirect_stdout restores
     # whatever stream was current (rather than a module-level snapshot taken at
@@ -179,9 +252,7 @@ def fetch_view(name, screener_cls, filters, views):
     with open(os.devnull, "w") as devnull, redirect_stdout(devnull):
         screener = screener_cls()
         screener.set_filter(filters_dict=filters)
-        data = screener.screener_view()
-    views[name] = data
-    return data
+        return screener.screener_view()
 
 
 def merge_screener_views(financial_data, *secondary_views):
@@ -252,6 +323,7 @@ def main():
     # Declared outside the try so the error handler can report whichever views
     # were fetched before the failure.
     views = {}
+    configure_finviz_session()
 
     try:
         # Apply custom filters
