@@ -120,8 +120,8 @@ For the automated workflows to function properly, configure these repository set
 
 ## Tech Stack
 
-- **Framework**: React 18 + Vite 5
-- **UI Library**: Material-UI (MUI) v7
+- **Framework**: React 19 + Vite 8
+- **UI Library**: Material-UI (MUI) v9
 - **Date Handling**: Day.js + MUI Date Pickers
 - **Testing**: Vitest + Testing Library
 - **Linting**: ESLint
