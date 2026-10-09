@@ -3,7 +3,7 @@
 Guidelines for assistants collaborating on the Stock Screener project.
 
 ## Project Snapshot
-- React 18 + Vite entry in `src/main.jsx` mounting `src/presentation/views/AppView.jsx`.
+- React 19 + Vite 8 entry in `src/main.jsx` mounting `src/presentation/views/AppView.jsx`.
 - Clean layering: domain rules in `src/domain/stock/`, persistence in `src/data/csvStockRepository.js`, coordination hooks in `src/application/useStockData.js`.
 - Data ships as CSVs in `public/data` (`latest.csv` + dated snapshots); builds emit to `dist/` via `vite build`.
 

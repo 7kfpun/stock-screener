@@ -9,11 +9,11 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { PickersDay } from '@mui/x-date-pickers/PickersDay';
+import { PickerDay } from '@mui/x-date-pickers/PickerDay';
 import dayjs from 'dayjs';
 import { trackDateSelection } from '../../shared/analytics.js';
 
-const StyledDay = styled(PickersDay, {
+const StyledDay = styled(PickerDay, {
   shouldForwardProp: (prop) => prop !== 'isAvailable',
 })(({ theme, isAvailable }) => ({
   ...(isAvailable && {
@@ -102,7 +102,7 @@ function DatePickerPopover({ selectedDate, availableDates, onDateChange }) {
     const { day, outsideCurrentMonth, ...other } = props;
 
     if (!day || !dayjs.isDayjs(day)) {
-      return <PickersDay {...other} day={day} outsideCurrentMonth={outsideCurrentMonth} />;
+      return <PickerDay {...other} day={day} outsideCurrentMonth={outsideCurrentMonth} />;
     }
 
     const isAvailable = availableDatesSet.has(day.format('YYYY-MM-DD'));
