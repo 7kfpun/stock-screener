@@ -42,6 +42,23 @@ describe('Stock', () => {
       expect(stock['Market Cap']).toBeNull();
     });
 
+    it('should read "%" strings as fractions, like the stored percentage fields', () => {
+      // NVDA on 2026-09-25 rendered as "+22.00%" for a 0.22% move.
+      const stock = createStock({ Ticker: 'NVDA', Change: '0.22%', ROIC: '19.87%' });
+
+      expect(stock.Change).toBeCloseTo(0.0022);
+      expect(stock.ROIC).toBeCloseTo(0.1987);
+    });
+
+    it('should read negative "%" strings as negative fractions', () => {
+      expect(createStock({ Ticker: 'HALO', Change: '-1.15%' }).Change).toBeCloseTo(-0.0115);
+    });
+
+    it('should leave fraction-valued percentage fields unchanged', () => {
+      // Pre-Aug 2026 snapshots store Change as a fraction already.
+      expect(createStock({ Ticker: 'AAPL', Change: '0.0947' }).Change).toBe(0.0947);
+    });
+
     it('should return null for invalid input', () => {
       expect(createStock(null)).toBeNull();
       expect(createStock(undefined)).toBeNull();
